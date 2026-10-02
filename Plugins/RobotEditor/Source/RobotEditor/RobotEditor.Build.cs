@@ -47,6 +47,7 @@ public class RobotEditor : ModuleRules
 				"Slate",
 				"SlateCore",
                 "LevelEditor",
+                "Niagra",
                 "InteractiveToolsFramework"
 				// ... add private dependencies that you statically link with here ...
 			}
