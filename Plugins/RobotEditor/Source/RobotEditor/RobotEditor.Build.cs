@@ -42,12 +42,12 @@ public class RobotEditor : ModuleRules
 				"EditorFramework",
 				"UnrealEd",
 				"ToolMenus",
+                "Niagara",
 				"CoreUObject",
 				"Engine",
 				"Slate",
 				"SlateCore",
                 "LevelEditor",
-                "Niagra",
                 "InteractiveToolsFramework"
 				// ... add private dependencies that you statically link with here ...
 			}
