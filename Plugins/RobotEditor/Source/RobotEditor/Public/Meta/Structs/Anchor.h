@@ -11,6 +11,8 @@ public:
     FTransform AnchorTransform;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Anchor Data")
     bool bIsConnected;
+    UPROPERTY(EditAnywhere, BlueprintRead, Category = "Anchor Data")
+    FAnchor ConnectedAnchor;
 
     FAnchor()
         : AnchorTransform(),

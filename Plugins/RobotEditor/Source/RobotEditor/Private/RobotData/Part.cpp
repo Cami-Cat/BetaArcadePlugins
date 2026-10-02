@@ -28,6 +28,8 @@ bool APart::ConnectAnchor(FAnchor& Anchor, FAnchor& OtherAnchor) {
     if (Anchor.bIsConnected == true && OtherAnchor.bIsConnected == true) return false;
     Anchor.bIsConnected = true;
     OtherAnchor.bIsConnected = true;
+    Anchor.ConnectedAnchor = OtherAnchor;
+    OtherAnchor.ConnectedAnchor = Anchor;
     return (Anchor.bIsConnected == true && OtherAnchor.bIsConnected == true);
 }
 
