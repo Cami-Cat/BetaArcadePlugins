@@ -10,6 +10,8 @@ public class RobotEditor : ModuleRules
 
 		PublicIncludePaths.AddRange(
 			new string[] {
+                "RobotEditor/Public",
+                "RobotEditor/Public/Viewport"
 				// ... add public include paths required here ...
 			}
 			);
@@ -17,7 +19,8 @@ public class RobotEditor : ModuleRules
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				// ... add other private include paths required here ...
+                "RobotEditor/Private",
+				"RobotEditor/Private/Viewport"
 			}
 			);
 
