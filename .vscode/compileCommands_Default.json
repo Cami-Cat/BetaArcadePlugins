@@ -1,0 +1,82 @@
+[
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Plugins\\RobotEditor\\Source\\RobotEditor\\Private\\RobotEditor.cpp",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\RobotEditor.47.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	},
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Plugins\\RobotEditor\\Source\\RobotEditor\\Private\\RobotEditorCommands.cpp",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\RobotEditor.47.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	},
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Plugins\\RobotEditor\\Source\\RobotEditor\\Private\\RobotEditorStyle.cpp",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\RobotEditor.47.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	},
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Plugins\\RobotEditor\\Source\\RobotEditor\\Public\\RobotEditor.h",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\RobotEditor.47.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	},
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Plugins\\RobotEditor\\Source\\RobotEditor\\Public\\RobotEditorCommands.h",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\RobotEditor.47.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	},
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Plugins\\RobotEditor\\Source\\RobotEditor\\Public\\RobotEditorStyle.h",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\RobotEditor.47.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	},
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Plugins\\RobotEditor\\Source\\RobotEditor\\RobotEditor.Build.cs",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\RobotEditor.47.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	},
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Source\\BetaArcadePlugins\\BetaArcadePlugins.Build.cs",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\BetaArcadePlugins.1.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	},
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Source\\BetaArcadePlugins\\BetaArcadePlugins.cpp",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\BetaArcadePlugins.1.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	},
+	{
+		"file": "D:\\Godot\\Uni\\BetaArcadePlugins\\Source\\BetaArcadePlugins\\BetaArcadePlugins.h",
+		"arguments": [
+			"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\Hostx64\\x64\\cl.exe",
+			"@D:\\Godot\\Uni\\BetaArcadePlugins\\.vscode\\compileCommands_Default\\BetaArcadePlugins.1.rsp"
+		],
+		"directory": "D:\\Games\\UE_5.7\\Engine\\Source"
+	}
+]

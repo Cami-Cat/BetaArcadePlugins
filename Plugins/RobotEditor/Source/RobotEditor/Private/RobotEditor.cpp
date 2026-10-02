@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "RobotEditor.h"
 #include "RobotEditorStyle.h"
 #include "RobotEditorCommands.h"
@@ -7,21 +5,19 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Viewport/RobotEditorViewport.h"
 #include "ToolMenus.h"
 
 static const FName RobotEditorTabName("RobotEditor");
 
 #define LOCTEXT_NAMESPACE "FRobotEditorModule"
 
-void FRobotEditorModule::StartupModule()
-{
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
-	
+void FRobotEditorModule::StartupModule() {
 	FRobotEditorStyle::Initialize();
 	FRobotEditorStyle::ReloadTextures();
 
 	FRobotEditorCommands::Register();
-	
+
 	PluginCommands = MakeShareable(new FUICommandList);
 
 	PluginCommands->MapAction(
@@ -30,63 +26,38 @@ void FRobotEditorModule::StartupModule()
 		FCanExecuteAction());
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FRobotEditorModule::RegisterMenus));
-	
+
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RobotEditorTabName, FOnSpawnTab::CreateRaw(this, &FRobotEditorModule::OnSpawnPluginTab))
 		.SetDisplayName(LOCTEXT("FRobotEditorTabTitle", "RobotEditor"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 }
 
-void FRobotEditorModule::ShutdownModule()
-{
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
-
+void FRobotEditorModule::ShutdownModule() {
 	UToolMenus::UnRegisterStartupCallback(this);
-
 	UToolMenus::UnregisterOwner(this);
-
 	FRobotEditorStyle::Shutdown();
-
 	FRobotEditorCommands::Unregister();
-
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(RobotEditorTabName);
 }
 
-TSharedRef<SDockTab> FRobotEditorModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
-{
-	FText WidgetText = FText::Format(
-		LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
-		FText::FromString(TEXT("FRobotEditorModule::OnSpawnPluginTab")),
-		FText::FromString(TEXT("RobotEditor.cpp"))
-		);
-
+TSharedRef<SDockTab> FRobotEditorModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs) {
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
 		[
-			// Put your tab content here!
-			SNew(SBox)
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(WidgetText)
-			]
+            SNew(SRobotEditorViewport)
 		];
 }
 
-void FRobotEditorModule::PluginButtonClicked()
-{
+void FRobotEditorModule::PluginButtonClicked() {
 	FGlobalTabmanager::Get()->TryInvokeTab(RobotEditorTabName);
 }
 
-void FRobotEditorModule::RegisterMenus()
-{
-	// Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
+void FRobotEditorModule::RegisterMenus() {
 	FToolMenuOwnerScoped OwnerScoped(this);
 
-	{
+    {
 		UToolMenu* Menu = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu.Window");
-		{
+        {
 			FToolMenuSection& Section = Menu->FindOrAddSection("WindowLayout");
 			Section.AddMenuEntryWithCommandList(FRobotEditorCommands::Get().OpenPluginWindow, PluginCommands);
 		}
@@ -105,5 +76,5 @@ void FRobotEditorModule::RegisterMenus()
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FRobotEditorModule, RobotEditor)
