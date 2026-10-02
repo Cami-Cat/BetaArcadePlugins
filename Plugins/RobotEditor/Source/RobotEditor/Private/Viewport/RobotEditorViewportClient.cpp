@@ -8,6 +8,10 @@ FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewS
 
         SetViewLocation(FVector(-500.0f, 300.0f, 300.0f));
         SetViewRotation(FRotator(-20.0f, -30.0f, 0.0f));
+
+        DrawHelper.bDrawGrid = true;
+        DrawHelper.GridColor = FColor(100, 100, 100);
+        DrawHelper.GridCellSize = 16.0f;
 }
 
 void FRobotEditorViewportClient::Tick(float DeltaSeconds) {

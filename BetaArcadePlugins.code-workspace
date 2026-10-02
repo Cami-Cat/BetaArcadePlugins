@@ -10,6 +10,13 @@
 		}
 	],
 	"settings": {
+        "C_Cpp.intelliSenseEngine": "Tag Parser",
+        "C_Cpp.errorSquiggles": "EnabledIfIncludesResolve",
+        "C_Cpp.default.includePath": [
+            "${workspaceFolder}/Plugins/RobotEditor/Source/RobotEditor/Private/**",
+            "${workspaceFolder}/Plugins/RobotEditor/Source/RobotEditor/Public/**",
+            "${default}"
+        ],
 		"typescript.tsc.autoDetect": "off",
 		"npm.autoDetect": "off",
 		"terminal.integrated.env.windows": {
@@ -501,7 +508,7 @@
 			{
 				"name": "Launch BetaArcadePlugins (Development)",
 				"request": "launch",
-				"program": "D:\\Godot\\Uni\\BetaArcadePlugins\\Binaries\\Win64\\UnrealGame.exe",
+				"program": "D:\\Godot\\Uni\\BetaArcadePlugins\\Binaries\\Win64\\BetaArcadePlugins.exe",
 				"preLaunchTask": "BetaArcadePlugins Win64 Development Build",
 				"args": [
 				],

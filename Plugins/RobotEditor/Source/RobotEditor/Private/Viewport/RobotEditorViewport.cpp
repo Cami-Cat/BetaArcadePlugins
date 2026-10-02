@@ -1,5 +1,6 @@
 #include "Viewport/RobotEditorViewport.h"
 #include "Widgets/SViewport.h"
+#include "Components/SkyLightComponent.h"
 #include "SViewportToolBar.h"
 
 void SRobotEditorViewport::Construct(const FArguments& InArgs) {
@@ -8,11 +9,11 @@ void SRobotEditorViewport::Construct(const FArguments& InArgs) {
     // Here we can test spawn something into our preview scene on constructing the viewport. Here I'm going to spawn a skylight.
 
     USkyLightComponent* Skylight = NewObject<USkyLightComponent>(m_PreviewScene.GetWorld());
-    m_PreviewScene.AddComponent(SkyLight, FTransform::Identiy);
+    m_PreviewScene.AddComponent(Skylight, FTransform::Identity);
 }
 
-TSharedPtr<FEditorViewportClient> SRobotEditorViewport::CreateViewportClient() {
-    m_ViewportClient = MakeShareable(new FRobotEditorViewportClient(m_PreviewScene))
+TSharedRef<FEditorViewportClient> SRobotEditorViewport::MakeEditorViewportClient() {
+    m_ViewportClient = MakeShareable(new FRobotEditorViewportClient(m_PreviewScene));
     return m_ViewportClient.ToSharedRef();
 }
 

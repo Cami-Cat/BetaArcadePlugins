@@ -14,7 +14,7 @@ public:
     virtual ~SRobotEditorViewport() override {}
 
 protected:
-    virtual TSharedRef<FEditorViewportClient> CreateViewportClient();
+    virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
     virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
 
 private:
