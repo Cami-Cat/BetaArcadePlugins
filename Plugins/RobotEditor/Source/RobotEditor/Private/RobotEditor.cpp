@@ -5,10 +5,16 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Viewport/Tabs/RobotEditorTab.h"
+#include "Viewport/Tabs/PartEditorTab.h"
 #include "Viewport/RobotEditorViewport.h"
+#include "Viewport/PartEditorViewport.h"
+#include "Meta/Enums/TabSwitcher.h"
 #include "ToolMenus.h"
 
 static const FName RobotEditorTabName("RobotEditor");
+static const FName PartEditorTabName("PartEditor");
+static const FName EditorUnifiedWindowLayoutVer("EditorUnifiedLayout_v1.0");
 
 #define LOCTEXT_NAMESPACE "FRobotEditorModule"
 
@@ -19,7 +25,6 @@ void FRobotEditorModule::StartupModule() {
 	FRobotEditorCommands::Register();
 
 	PluginCommands = MakeShareable(new FUICommandList);
-
 	PluginCommands->MapAction(
 		FRobotEditorCommands::Get().OpenPluginWindow,
 		FExecuteAction::CreateRaw(this, &FRobotEditorModule::PluginButtonClicked),
@@ -27,9 +32,31 @@ void FRobotEditorModule::StartupModule() {
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FRobotEditorModule::RegisterMenus));
 
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RobotEditorTabName, FOnSpawnTab::CreateRaw(this, &FRobotEditorModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FRobotEditorTabTitle", "RobotEditor"))
-		.SetMenuType(ETabSpawnerMenuType::Hidden);
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RobotEditorTabName, FOnSpawnTab::CreateStatic(&SRobotEditorTab::MakeTab))
+        .SetDisplayName(INVTEXT("Robot Editor"))
+        .SetMenuType(ETabSpawnerMenuType::Enabled);
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(PartEditorTabName, FOnSpawnTab::CreateStatic(&SPartEditorTab::MakeTab))
+        .SetDisplayName(INVTEXT("Part Editor"))
+        .SetMenuType(ETabSpawnerMenuType::Enabled);
+
+    FCoreDelegates::OnPostEngineInit.AddRaw(this, &FRobotEditorModule::OnEngineInitialized);
+}
+
+void FRobotEditorModule::OnEngineInitialized() {
+    TSharedRef<FTabManager::FLayout> CustomEditorLayout = FTabManager::NewLayout(EditorUnifiedWindowLayoutVer)
+    ->AddArea(
+        FTabManager::NewPrimaryArea()
+        ->SetOrientation(Orient_Horizontal)
+        ->Split(
+            FTabManager::NewStack()
+            ->AddTab(RobotEditorTabName, ETabState::OpenedTab)
+            ->AddTab(PartEditorTabName, ETabState::OpenedTab)
+            ->SetForegroundTab(FTabId(PartEditorTabName))
+        )
+    );
+
+    TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
+    FGlobalTabmanager::Get()->RestoreFrom(CustomEditorLayout, RootWindow);
 }
 
 void FRobotEditorModule::ShutdownModule() {
@@ -37,19 +64,14 @@ void FRobotEditorModule::ShutdownModule() {
 	UToolMenus::UnregisterOwner(this);
 	FRobotEditorStyle::Shutdown();
 	FRobotEditorCommands::Unregister();
-	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(RobotEditorTabName);
-}
-
-TSharedRef<SDockTab> FRobotEditorModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs) {
-	return SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
-		[
-            SNew(SRobotEditorViewport)
-		];
+    FCoreDelegates::OnPostEngineInit.RemoveAll(this);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(RobotEditorTabName);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(PartEditorTabName);
 }
 
 void FRobotEditorModule::PluginButtonClicked() {
 	FGlobalTabmanager::Get()->TryInvokeTab(RobotEditorTabName);
+    FGlobalTabmanager::Get()->TryInvokeTab(PartEditorTabName);
 }
 
 void FRobotEditorModule::RegisterMenus() {
