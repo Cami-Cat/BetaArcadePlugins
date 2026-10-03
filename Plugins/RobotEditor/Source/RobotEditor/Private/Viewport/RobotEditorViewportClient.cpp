@@ -13,6 +13,7 @@ FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewS
 
         SetViewRotation(FRotator(-30.0f, -45.0f, 0.0f));
         UpdateCameraPositionFromOrbit();
+        Invalidate();
 }
 
 void FRobotEditorViewportClient::Tick(float DeltaSeconds) {

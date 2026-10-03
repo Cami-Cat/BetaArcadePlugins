@@ -13,6 +13,7 @@ FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewSce
 
         SetViewRotation(FRotator(-30.0f, -45.0f, 0.0f));
         UpdateCameraPositionFromOrbit();
+        Invalidate();
 }
 
 void FPartEditorViewportClient::Tick(float DeltaSeconds) {

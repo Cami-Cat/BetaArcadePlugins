@@ -5,11 +5,6 @@
 
 void SRobotEditorViewport::Construct(const FArguments& InArgs) {
     SEditorViewport::Construct(SEditorViewport::FArguments());
-
-    // Here we can test spawn something into our preview scene on constructing the viewport. Here I'm going to spawn a skylight.
-
-    USkyLightComponent* Skylight = NewObject<USkyLightComponent>(m_PreviewScene.GetWorld());
-    m_PreviewScene.AddComponent(Skylight, FTransform::Identity);
 }
 
 TSharedRef<FEditorViewportClient> SRobotEditorViewport::MakeEditorViewportClient() {
