@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "EditorViewportClient.h"
+#include "IDetailsView.h"
 #include "PreviewScene.h"
 
 class FPartEditorViewportClient : public FEditorViewportClient {
@@ -13,10 +14,21 @@ public:
     virtual bool InputAxis(const FInputKeyEventArgs& EventArgs) override;
     virtual void Tick(float DeltaSeconds) override;
 
+    void SetDetailsView(TSharedPtr<IDetailsView> InDetailsView) { m_AssociatedDetailsView = InDetailsView; }
+    void SetInspectedObject(UObject* NewPartObject);
+
 private:
     FVector m_OrbitTargetPoint;
     float m_CameraOrbitRadius;
     bool m_bIsOrbiting;
+
+    TSharedPtr<IDetailsView> m_AssociatedDetailsView;
+    TWeakObjectPtr<UObject> m_CurrentInspectedObject;
+    TWeakObjectPtr<AActor> m_SpawnedPreviewActor;
+
+    AStaticMeshActor* CreateStaticMeshComponent(UStaticMesh* InObject, FActorSpawnParameters& SpawnParams);
+    AActor* CreateActorComponent(UBlueprint* InObject, FActorSpawnParameters& SpawnParams);
+    AActor* SpawnActorComponent(UObject* InObject, FActorSpawnParameters& SpawnParams);
 
     void UpdateCameraPositionFromOrbit();
 };

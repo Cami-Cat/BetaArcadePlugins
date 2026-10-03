@@ -1,4 +1,10 @@
 #include "Viewport/PartEditorViewportClient.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Blueprint.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "RobotData/PartDat.h"
 
 FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorViewportClient(nullptr, &InPreviewScene) {
@@ -8,11 +14,12 @@ FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewSce
         DrawHelper.bDrawGrid = true;
 
         m_OrbitTargetPoint = FVector::ZeroVector;
-        m_CameraOrbitRadius = 600.0f;
+        m_CameraOrbitRadius = 50.0f;
         m_bIsOrbiting = false;
 
         SetViewRotation(FRotator(-30.0f, -45.0f, 0.0f));
         UpdateCameraPositionFromOrbit();
+        EngineShowFlags.SetEyeAdaptation(false);
         Invalidate();
 }
 
@@ -88,4 +95,77 @@ void FPartEditorViewportClient::UpdateCameraPositionFromOrbit() {
     FVector LookDirection = GetViewRotation().Vector();
     FVector NewLocation = m_OrbitTargetPoint - (LookDirection * m_CameraOrbitRadius);
     SetViewLocation(NewLocation);
+}
+
+void FPartEditorViewportClient::SetInspectedObject(UObject* NewPartObject) {
+    if (!NewPartObject) return;
+
+    m_CurrentInspectedObject = NewPartObject;
+
+    if (m_AssociatedDetailsView.IsValid()) {
+        m_AssociatedDetailsView->SetObject(NewPartObject);
+    }
+
+    UWorld* PreviewWorld = PreviewScene->GetWorld();
+    if (!PreviewWorld) return;
+
+    if (m_SpawnedPreviewActor.IsValid()) {
+        m_SpawnedPreviewActor->Destroy();
+        m_SpawnedPreviewActor.Reset();
+    }
+
+    AActor* NewActor = nullptr;
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    UPDAPart* DataAsset = Cast<UPDAPart>(NewPartObject);
+
+    if (!DataAsset) {
+        NewActor = SpawnActorComponent(NewPartObject, SpawnParams);
+    } else {
+        if (DataAsset->Object) {
+            NewActor = SpawnActorComponent(DataAsset->Object, SpawnParams);
+         }
+    }
+
+    if (NewActor) {
+        m_SpawnedPreviewActor = NewActor;
+
+        TInlineComponentArray<UActorComponent*> ActorComponents;
+        NewActor->GetComponents(ActorComponents);
+        for (UActorComponent* Component : ActorComponents) {
+            if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component)) {
+                PreviewScene->AddComponent(PrimitiveComponent, PrimitiveComponent->GetRelativeTransform());
+            }
+        }
+    }
+
+    Invalidate();
+}
+
+AStaticMeshActor* FPartEditorViewportClient::CreateStaticMeshComponent(UStaticMesh* InObject, FActorSpawnParameters& SpawnParams) {
+    UWorld* PreviewWorld = PreviewScene->GetWorld();
+    AStaticMeshActor* MeshActor = PreviewWorld->SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+    if (MeshActor && MeshActor->GetStaticMeshComponent()) {
+        MeshActor->GetStaticMeshComponent()->SetStaticMesh(InObject);
+        return MeshActor;
+    }
+    return nullptr;
+}
+
+AActor* FPartEditorViewportClient::CreateActorComponent(UBlueprint* InObject, FActorSpawnParameters& SpawnParams) {
+    UWorld* PreviewWorld = PreviewScene->GetWorld();
+    if (UClass* ActorClass = InObject->GeneratedClass) {
+        return PreviewWorld->SpawnActor<AActor>(ActorClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+    }
+    return nullptr;
+}
+
+AActor* FPartEditorViewportClient::SpawnActorComponent(UObject* InObject, FActorSpawnParameters& SpawnParams) {
+    if (UStaticMesh* InnerMesh = Cast<UStaticMesh>(InObject)) {
+        return CreateStaticMeshComponent(InnerMesh, SpawnParams);
+    }
+    else if (UBlueprint* InnerBP = Cast<UBlueprint>(InObject)) {
+        return CreateActorComponent(InnerBP, SpawnParams);
+    }
+    return nullptr;
 }
