@@ -5,8 +5,7 @@
 #include "Styling/SlateStyle.h"
 
 /**  */
-class FRobotEditorStyle
-{
+class FRobotEditorStyle {
 public:
 
 	static void Initialize();

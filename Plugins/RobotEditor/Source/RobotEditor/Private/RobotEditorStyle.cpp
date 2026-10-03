@@ -11,24 +11,20 @@
 
 TSharedPtr<FSlateStyleSet> FRobotEditorStyle::StyleInstance = nullptr;
 
-void FRobotEditorStyle::Initialize()
-{
-	if (!StyleInstance.IsValid())
-	{
+void FRobotEditorStyle::Initialize() {
+	if (!StyleInstance.IsValid()) {
 		StyleInstance = Create();
 		FSlateStyleRegistry::RegisterSlateStyle(*StyleInstance);
 	}
 }
 
-void FRobotEditorStyle::Shutdown()
-{
+void FRobotEditorStyle::Shutdown() {
 	FSlateStyleRegistry::UnRegisterSlateStyle(*StyleInstance);
 	ensure(StyleInstance.IsUnique());
 	StyleInstance.Reset();
 }
 
-FName FRobotEditorStyle::GetStyleSetName()
-{
+FName FRobotEditorStyle::GetStyleSetName() {
 	static FName StyleSetName(TEXT("RobotEditorStyle"));
 	return StyleSetName;
 }
@@ -36,8 +32,7 @@ FName FRobotEditorStyle::GetStyleSetName()
 const FVector2D Icon16x16(16.0f, 16.0f);
 const FVector2D Icon20x20(20.0f, 20.0f);
 
-TSharedRef< FSlateStyleSet > FRobotEditorStyle::Create()
-{
+TSharedRef< FSlateStyleSet > FRobotEditorStyle::Create() {
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("RobotEditorStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("RobotEditor")->GetBaseDir() / TEXT("Resources"));
 
@@ -46,15 +41,13 @@ TSharedRef< FSlateStyleSet > FRobotEditorStyle::Create()
 	return Style;
 }
 
-void FRobotEditorStyle::ReloadTextures()
-{
+void FRobotEditorStyle::ReloadTextures() {
 	if (FSlateApplication::IsInitialized())
 	{
 		FSlateApplication::Get().GetRenderer()->ReloadTextureResources();
 	}
 }
 
-const ISlateStyle& FRobotEditorStyle::Get()
-{
+const ISlateStyle& FRobotEditorStyle::Get() {
 	return *StyleInstance;
 }

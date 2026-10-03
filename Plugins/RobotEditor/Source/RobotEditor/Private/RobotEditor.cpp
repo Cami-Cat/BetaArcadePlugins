@@ -12,10 +12,6 @@
 #include "Meta/Enums/TabSwitcher.h"
 #include "ToolMenus.h"
 
-static const FName RobotEditorTabName("RobotEditor");
-static const FName PartEditorTabName("PartEditor");
-static const FName EditorUnifiedWindowLayoutVer("EditorUnifiedLayout_v1.0");
-
 #define LOCTEXT_NAMESPACE "FRobotEditorModule"
 
 void FRobotEditorModule::StartupModule() {

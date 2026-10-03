@@ -1,6 +1,5 @@
 #include "RobotData/Part.h"
 
-
 FTooltip& APart::GetTooltip() {
     return PartData->GetTooltipData();
 }
