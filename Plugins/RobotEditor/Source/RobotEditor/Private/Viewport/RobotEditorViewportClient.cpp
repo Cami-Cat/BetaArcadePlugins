@@ -3,7 +3,7 @@
 FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorViewportClient(nullptr, &InPreviewScene) {
         bDrawAxes = true;
-        SetViewMode(VMI_Lit);
+        SetViewMode(VMI_Unlit);
         SetViewportType(LVT_Perspective);
         DrawHelper.bDrawGrid = true;
 
