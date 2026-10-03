@@ -1,5 +1,6 @@
 #include "Viewport/Tabs/PartEditorTab.h"
 #include "Viewport/PartEditorViewport.h"
+#include "Viewport/PartEditorViewportClient.h"
 #include "Widgets/Layout/SSplitter.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
@@ -16,6 +17,11 @@ TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) 
     DetailsViewArgs.bAllowFavoriteSystem = false;
 
     TSharedRef<IDetailsView> PartsDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+    TSharedRef<SPartEditorViewport> ViewportWidget = SNew(SPartEditorViewport);
+    TSharedPtr<FPartEditorViewportClient> ClientPtr = ViewportWidget->GetPartClient();
+    if (ClientPtr.IsValid()) {
+        ClientPtr->SetDetailsView(PartsDetailsView);
+    }
 
     return SNew(SDockTab)
         .TabRole(ETabRole::NomadTab)
@@ -26,7 +32,7 @@ TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) 
             +SSplitter::Slot()
             .Value(0.7f)
             [
-            SNew(SPartEditorViewport)
+                ViewportWidget
             ]
 
             +SSplitter::Slot()

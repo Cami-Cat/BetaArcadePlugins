@@ -13,6 +13,10 @@ public:
     void Construct(const FArguments& InArgs);
     virtual ~SPartEditorViewport() override {}
 
+    TSharedPtr<FPartEditorViewportClient> GetPartClient() const { return m_ViewportClient; }
+
+    void SetEditingObject(UObject* NewObject);
+
 protected:
     virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
     virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
