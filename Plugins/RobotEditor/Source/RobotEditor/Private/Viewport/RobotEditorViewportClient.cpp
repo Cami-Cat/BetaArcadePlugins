@@ -25,15 +25,11 @@ void FRobotEditorViewportClient::Tick(float DeltaSeconds) {
 
 bool FRobotEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
     if (EventArgs.Key == EKeys::MouseScrollUp && EventArgs.Event == IE_Pressed) {
-        m_CameraOrbitRadius = FMath::Max(50.0f, m_CameraOrbitRadius - 50.0f);
-        UpdateCameraPositionFromOrbit();
-        Invalidate();
+        ZoomCamera(-50.0f);
         return true;
     }
     if (EventArgs.Key == EKeys::MouseScrollDown && EventArgs.Event == IE_Pressed) {
-        m_CameraOrbitRadius = FMath::Min(5000.0f, m_CameraOrbitRadius + 50.0f);
-        UpdateCameraPositionFromOrbit();
-        Invalidate();
+        ZoomCamera(50.0f);
         return true;
     }
 
@@ -63,7 +59,6 @@ bool FRobotEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
 bool FRobotEditorViewportClient::InputAxis(const FInputKeyEventArgs& EventArgs) {
     if (!m_bIsOrbiting) return false;
 
-
     FRotator CurrentRotation = GetViewRotation();
     float Delta = EventArgs.AmountDepressed;
 
@@ -89,4 +84,10 @@ void FRobotEditorViewportClient::UpdateCameraPositionFromOrbit() {
     FVector LookDirection = GetViewRotation().Vector();
     FVector NewLocation = m_OrbitTargetPoint - (LookDirection * m_CameraOrbitRadius);
     SetViewLocation(NewLocation);
+}
+
+void FRobotEditorViewportClient::ZoomCamera(float ZoomAmount) {
+    m_CameraOrbitRadius = FMath::Clamp(m_CameraOrbitRadius + ZoomAmount, MinZoom, MaxZoom);
+    UpdateCameraPositionFromOrbit();
+    Invalidate();
 }

@@ -31,15 +31,11 @@ void FPartEditorViewportClient::Tick(float DeltaSeconds) {
 
 bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
     if (EventArgs.Key == EKeys::MouseScrollUp && EventArgs.Event == IE_Pressed) {
-        m_CameraOrbitRadius = FMath::Max(50.0f, m_CameraOrbitRadius - 50.0f);
-        UpdateCameraPositionFromOrbit();
-        Invalidate();
+        ZoomCamera(-50.0f);
         return true;
     }
     if (EventArgs.Key == EKeys::MouseScrollDown && EventArgs.Event == IE_Pressed) {
-        m_CameraOrbitRadius = FMath::Min(5000.0f, m_CameraOrbitRadius + 50.0f);
-        UpdateCameraPositionFromOrbit();
-        Invalidate();
+        ZoomCamera(50.0f);
         return true;
     }
 
@@ -168,4 +164,10 @@ AActor* FPartEditorViewportClient::SpawnActorComponent(UObject* InObject, FActor
         return CreateActorComponent(InnerBP, SpawnParams);
     }
     return nullptr;
+}
+
+void FPartEditorViewportClient::ZoomCamera(float ZoomAmount) {
+    m_CameraOrbitRadius = FMath::Clamp(m_CameraOrbitRadius + ZoomAmount, MinZoom, MaxZoom);
+    UpdateCameraPositionFromOrbit();
+    Invalidate();
 }

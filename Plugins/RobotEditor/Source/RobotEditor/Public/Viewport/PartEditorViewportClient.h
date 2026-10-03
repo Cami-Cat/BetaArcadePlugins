@@ -31,4 +31,10 @@ private:
     AActor* SpawnActorComponent(UObject* InObject, FActorSpawnParameters& SpawnParams);
 
     void UpdateCameraPositionFromOrbit();
+    
+    float MinZoom = 50.0f;
+    float MaxZoom = 5000.0f;
+
+    void UpdateCameraPositionFromOrbit();
+    void ZoomCamera(float ZoomAmount);
 };
