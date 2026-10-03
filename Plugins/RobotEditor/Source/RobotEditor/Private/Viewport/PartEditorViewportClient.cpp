@@ -23,6 +23,27 @@ FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewSce
         Invalidate();
 }
 
+void FPartEditorViewportClient::SetDetailsView(TSharedPtr<IDetailsView> InDetailsView) {
+    m_AssociatedDetailsView = InDetailsView;
+    if (m_AssociatedDetailsView.IsValid()) {
+        m_AssociatedDetailsView->OnFinishedChangingProperties().AddRaw(this, &FPartEditorViewportClient::OnInspectorPropertyChanged);
+    }
+}
+
+FPartEditorViewportClient::~FPartEditorViewportClient() {
+    if (m_AssociatedDetailsView.IsValid()) {
+        m_AssociatedDetailsView->OnFinishedChangingProperties().RemoveAll(this);
+    }
+}
+
+void FPartEditorViewportClient::OnInspectorPropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent) {
+    UE_LOG(LogTemp, Log, TEXT("Property on edited object has changed, updating and re-rendering."))
+    if (!m_CurrentInspectedObject.IsValid()) return;
+
+    UObject* ActiveObject = m_CurrentInspectedObject.Get();
+    SetInspectedObject(ActiveObject);
+}
+
 void FPartEditorViewportClient::Tick(float DeltaSeconds) {
     FEditorViewportClient::Tick(DeltaSeconds);
 

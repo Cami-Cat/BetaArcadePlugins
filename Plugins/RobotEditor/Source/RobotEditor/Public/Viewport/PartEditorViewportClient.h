@@ -8,13 +8,13 @@
 class FPartEditorViewportClient : public FEditorViewportClient {
 public:
     FPartEditorViewportClient(FPreviewScene& InPreviewScene);
-    virtual ~FPartEditorViewportClient() override {}
+    virtual ~FPartEditorViewportClient() override;
 
     virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
     virtual bool InputAxis(const FInputKeyEventArgs& EventArgs) override;
     virtual void Tick(float DeltaSeconds) override;
 
-    void SetDetailsView(TSharedPtr<IDetailsView> InDetailsView) { m_AssociatedDetailsView = InDetailsView; }
+    void SetDetailsView(TSharedPtr<IDetailsView> InDetailsView);
     void SetInspectedObject(UObject* NewPartObject);
 
 private:
@@ -31,9 +31,11 @@ private:
     AActor* SpawnActorComponent(UObject* InObject, FActorSpawnParameters& SpawnParams);
 
     void UpdateCameraPositionFromOrbit();
+    void ZoomCamera(float ZoomAmount);
 
     float MinZoom = 50.0f;
     float MaxZoom = 5000.0f;
 
-    void ZoomCamera(float ZoomAmount);
+    void OnInspectorPropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent);
+
 };
