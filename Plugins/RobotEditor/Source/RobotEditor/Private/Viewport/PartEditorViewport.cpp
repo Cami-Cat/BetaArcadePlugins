@@ -1,6 +1,7 @@
 #include "Viewport/PartEditorViewport.h"
 #include "Widgets/SViewport.h"
 #include "Components/SkyLightComponent.h"
+#include "DragAndDrop/AssetDragDropOp.h"
 #include "SViewportToolBar.h"
 
 void SPartEditorViewport::Construct(const FArguments& InArgs) {
@@ -21,4 +22,25 @@ void SPartEditorViewport::SetEditingObject(UObject* NewObject) {
         m_ViewportClient->SetInspectedObject(NewObject);
     }
     return;
+}
+
+FReply SPartEditorViewport::OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) {
+    TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+    if (DragDropOp.IsValid()) {
+        return FReply::Handled();
+    }
+    return FReply::Unhandled();
+}
+
+FReply SPartEditorViewport::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) {
+    TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+    if (DragDropOp.IsValid() && DragDropOp->GetAssets().Num() > 0) {
+        const FAssetData& DroppedAssetData = DragDropOp->GetAssets()[0];
+        UObject* LoadedAsset = DroppedAssetData.GetAsset();
+        if (LoadedAsset) {
+            SetEditingObject(LoadedAsset);
+            return FReply::Handled();
+        }
+    }
+    return FReply::Unhandled();
 }

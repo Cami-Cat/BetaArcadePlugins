@@ -17,6 +17,9 @@ public:
 
     void SetEditingObject(UObject* NewObject);
 
+    virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+    virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+
 protected:
     virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
     virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
