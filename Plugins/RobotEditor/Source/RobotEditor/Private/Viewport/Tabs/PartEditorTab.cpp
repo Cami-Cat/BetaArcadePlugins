@@ -1,9 +1,11 @@
+#include "Viewport/PartEditorViewportClient.h"
 #include "Viewport/Tabs/PartEditorTab.h"
 #include "Viewport/PartEditorViewport.h"
-#include "Viewport/PartEditorViewportClient.h"
 #include "Widgets/Layout/SSplitter.h"
+#include "Widgets/Input/SButton.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyEditorModule.h"
+#include "RobotData/PartDat.h"
 #include "IDetailsView.h"
 
 TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) {
@@ -42,10 +44,37 @@ TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) 
                 +SVerticalBox::Slot()
                 .AutoHeight()
                 .Padding(4.0f)
+                .HAlign(HAlign_Center)
                 [
                     SNew(STextBlock)
                     .Text(INVTEXT("Parts Inspector"))
                     .Font(FAppStyle::Get().GetFontStyle("NormalFontBold"))
+                ]
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(4.0f, 2.0f, 4.0f, 6.0f)
+                [
+                    SNew(SBox)
+                    .HeightOverride(AddPartButtonHeight)
+                    [
+                        SNew(SButton)
+                        .HAlign(HAlign_Center)
+                        .VAlign(VAlign_Center)
+                        .OnClicked_Lambda([ClientPtr]() -> FReply {
+                            if (ClientPtr.IsValid()) {
+                                UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
+                                if (NewBlankPart) {
+                                    ClientPtr->SetInspectedObject(NewBlankPart);
+                                }
+                            }
+                            return FReply::Handled();
+                        })
+                        [
+                            SNew(STextBlock)
+                            .Text(INVTEXT("+ Create New Part"))
+                            .Font(FAppStyle::Get().GetFontStyle("NormalFontBold"))
+                        ]
+                    ]
                 ]
                 + SVerticalBox::Slot()
                 .FillHeight(1.0f)
