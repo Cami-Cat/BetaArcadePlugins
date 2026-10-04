@@ -15,6 +15,8 @@ class UPDAPart : public UPrimaryDataAsset {
 GENERATED_BODY()
 
 public:
+    UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Part Dat")
+    FString PartName = TEXT("UNNAMED");
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Part Dat")
     float Health;
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Part Dat")

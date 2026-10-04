@@ -11,7 +11,7 @@ public:
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs);
-    virtual ~SPartEditorViewport() override {}
+    virtual ~SPartEditorViewport() override;
 
     TSharedPtr<FPartEditorViewportClient> GetPartClient() const { return m_ViewportClient; }
 
@@ -26,6 +26,6 @@ protected:
     virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
 
 private:
-    FPreviewScene m_PreviewScene;
+    TUniquePtr<FPreviewScene> m_PreviewScene;
     TSharedPtr<FPartEditorViewportClient> m_ViewportClient;
 };

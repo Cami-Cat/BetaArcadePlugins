@@ -12,7 +12,10 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "FileHelpers.h"
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
 #include "UObject/Package.h"
+#include "Interfaces/IMainFrameModule.h"
 #include "UnrealWidget.h"
 
 FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewScene)
@@ -328,15 +331,76 @@ void FPartEditorViewportClient::SaveActiveAsset() {
     if (!ActivePart) return;
 
     UPackage* CurrentPackage = ActivePart->GetPackage();
+    FString CurrentName = ActivePart->PartName;
+    CurrentName = CurrentName.Replace(TEXT(" "), TEXT("_"));
 
-    if (CurrentPackage == GetTransientPackage()) {
+    if (CurrentName.IsEmpty() || CurrentName.Len() == 0) {
+        CurrentName = TEXT("UNNAMED");
+    }
+
+    ActivePart->PartName = CurrentName;
+
+    if (CurrentPackage != GetTransientPackage()) {
+        TArray<UPackage*> PackagesToSave;
+        PackagesToSave.Add(CurrentPackage);
+
+        CurrentPackage->MarkPackageDirty();
+        ActivePart->MarkPackageDirty();
+
+        UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+    } else if (CurrentName.Equals(TEXT("UNNAMED"), ESearchCase::IgnoreCase)) {
+        FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+
+        FSaveAssetDialogConfig SaveDialogConfig;
+        SaveDialogConfig.DialogTitleOverride = INVTEXT("Save new Asset");
+        SaveDialogConfig.DefaultPath = TEXT("/RobotEditor/Data");
+        SaveDialogConfig.DefaultAssetName = TEXT("Unnamed");
+        SaveDialogConfig.AssetClassNames.Add(UPDAPart::StaticClass()->GetClassPathName());
+
+        FOnObjectPathChosenForSave OnSavePressed = FOnObjectPathChosenForSave::CreateLambda([this, ActivePart](const FString& ChosenPackagePath) {
+            FString TargetFolderPackagePath = FPaths::GetPath(ChosenPackagePath);
+            FString CleanAssetName = FPaths::GetBaseFilename(ChosenPackagePath);
+
+            ActivePart->Rename(*CleanAssetName, ActivePart->GetOuter());
+
+            FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+            UPDAPart* NewSavedAsset = Cast<UPDAPart>(AssetToolsModule.Get().CreateAsset(
+                CleanAssetName,
+                TargetFolderPackagePath,
+                UPDAPart::StaticClass(),
+                nullptr
+            ));
+
+            if (NewSavedAsset) {
+                NewSavedAsset->Object = ActivePart->Object;
+                NewSavedAsset->Anchors = ActivePart->Anchors;
+                NewSavedAsset->PartName = CleanAssetName;
+
+                NewSavedAsset->MarkPackageDirty();
+                NewSavedAsset->GetPackage()->MarkPackageDirty();
+
+                TArray<UPackage*> PackagesToSave;
+                PackagesToSave.Add(NewSavedAsset->GetPackage());
+
+                UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+
+                SetInspectedObject(NewSavedAsset);
+            }
+        });
+
+        FOnAssetDialogCancelled OnCancelPressed = FOnAssetDialogCancelled::CreateLambda([]() {
+            UE_LOG(LogTemp, Warning, TEXT("Save action cancelled."));
+        });
+
+        ContentBrowserModule.Get().CreateSaveAssetDialog(SaveDialogConfig, OnSavePressed, OnCancelPressed);
+    } else if (CurrentPackage == GetTransientPackage()) {
         FString TargetFolderPackagePath = TEXT("/RobotEditor/Data");
-        FString CleanAssetName = TEXT("New_PDA_Part");
 
         FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
         FString UniquePackagePath;
         FString UniqueAssetName;
-        AssetToolsModule.Get().CreateUniqueAssetName(TargetFolderPackagePath + TEXT("/") + CleanAssetName, TEXT(""), UniquePackagePath, UniqueAssetName);
+
+        AssetToolsModule.Get().CreateUniqueAssetName(TargetFolderPackagePath + TEXT("/") + CurrentName, TEXT(""), UniquePackagePath, UniqueAssetName);
 
         UPDAPart* NewSavedAsset = Cast<UPDAPart>(AssetToolsModule.Get().CreateAsset(
             UniqueAssetName,
@@ -346,9 +410,9 @@ void FPartEditorViewportClient::SaveActiveAsset() {
         ));
 
         if (NewSavedAsset) {
-
             NewSavedAsset->Object = ActivePart->Object;
             NewSavedAsset->Anchors = ActivePart->Anchors;
+            NewSavedAsset->PartName = ActivePart->PartName;
 
             NewSavedAsset->MarkPackageDirty();
             NewSavedAsset->GetPackage()->MarkPackageDirty();
@@ -360,13 +424,5 @@ void FPartEditorViewportClient::SaveActiveAsset() {
 
             SetInspectedObject(NewSavedAsset);
         }
-    } else {
-        TArray<UPackage*> PackagesToSave;
-        PackagesToSave.Add(CurrentPackage);
-
-        CurrentPackage->MarkPackageDirty();
-        ActivePart->MarkPackageDirty();
-
-        UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
     }
 }

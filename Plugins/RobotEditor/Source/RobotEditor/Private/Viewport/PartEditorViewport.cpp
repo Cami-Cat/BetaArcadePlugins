@@ -6,11 +6,31 @@
 #include "Framework/Commands/UICommandInfo.h"
 
 void SPartEditorViewport::Construct(const FArguments& InArgs) {
+    m_PreviewScene = MakeUnique<FPreviewScene>();
     SEditorViewport::Construct(SEditorViewport::FArguments());
 }
 
+SPartEditorViewport::~SPartEditorViewport()
+{
+    if (m_ViewportClient.IsValid()) {
+        m_ViewportClient->Viewport = nullptr;
+    }
+    if (m_PreviewScene.IsValid()) {
+        m_PreviewScene.Reset();
+    }
+}
+
 TSharedRef<FEditorViewportClient> SPartEditorViewport::MakeEditorViewportClient() {
-    m_ViewportClient = MakeShareable(new FPartEditorViewportClient(m_PreviewScene));
+    if (m_PreviewScene.IsValid()) {
+        m_ViewportClient = MakeShareable(new FPartEditorViewportClient(*m_PreviewScene.Get()));
+    } else {
+        m_PreviewScene = MakeUnique<FPreviewScene>();
+        m_ViewportClient = MakeShareable(new FPartEditorViewportClient(*m_PreviewScene.Get()));
+    }
+
+    m_ViewportClient->ViewportType = LVT_Perspective;
+    m_ViewportClient->bDrawAxes = true;
+
     return m_ViewportClient.ToSharedRef();
 }
 
