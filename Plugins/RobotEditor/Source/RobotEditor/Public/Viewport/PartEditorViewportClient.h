@@ -10,6 +10,8 @@ public:
     FPartEditorViewportClient(FPreviewScene& InPreviewScene);
     virtual ~FPartEditorViewportClient() override;
 
+    virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
+
     virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
     virtual bool InputAxis(const FInputKeyEventArgs& EventArgs) override;
     virtual void Tick(float DeltaSeconds) override;
@@ -17,6 +19,9 @@ public:
     void SetDetailsView(TSharedPtr<IDetailsView> InDetailsView);
     void SetInspectedObject(UObject* NewPartObject);
     TWeakObjectPtr<UObject> GetInspectedObject() { return m_CurrentInspectedObject; }
+
+    void SetSelectedAnchorIndex(int32 NewIndex) { m_SelectedAnchorIndex = NewIndex; }
+    int32 GetSelectedAnchorIndex() const { return m_SelectedAnchorIndex; }
 
 private:
     FVector m_OrbitTargetPoint;
@@ -26,6 +31,8 @@ private:
     TSharedPtr<IDetailsView> m_AssociatedDetailsView;
     TWeakObjectPtr<UObject> m_CurrentInspectedObject;
     TWeakObjectPtr<AActor> m_SpawnedPreviewActor;
+
+    int32 m_SelectedAnchorIndex;
 
     AStaticMeshActor* CreateStaticMeshComponent(UStaticMesh* InObject, FActorSpawnParameters& SpawnParams);
     AActor* CreateActorComponent(UBlueprint* InObject, FActorSpawnParameters& SpawnParams);

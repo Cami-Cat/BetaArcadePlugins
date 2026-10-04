@@ -4,6 +4,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "SceneManagement.h"
 #include "RobotData/PartDat.h"
 
 FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewScene)
@@ -81,8 +82,6 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
         FVector RayDirection = CursorLocation.GetDirection();
         FVector RayEnd = RayOrigin + (RayDirection * 10000.0f);
 
-        UE_LOG(LogTemp, Log, TEXT("Tracing 3D Ray from Cam Origin: %s"), *RayOrigin.ToString());
-
         if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
             float BestHitDistance = FLT_MAX;
             int32 SelectedAnchorIndex = INDEX_NONE;
@@ -99,13 +98,15 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
                 }
             }
 
+            m_SelectedAnchorIndex = SelectedAnchorIndex;
+
             if (SelectedAnchorIndex != INDEX_NONE) {
-                UE_LOG(LogTemp, Warning, TEXT("SUCCESS! Selected Anchor Point: %s at Index: %d"), *ActivePart->Anchors[SelectedAnchorIndex].AnchorName, SelectedAnchorIndex);
                 if (GetWorld()) {
                     DrawDebugPoint(GetWorld(), ActivePart->Anchors[SelectedAnchorIndex].Position, 20.0f, FColor::Green, false, 2.0f);
                 }
             }
         }
+        Invalidate();
         return true;
     }
 
@@ -220,4 +221,35 @@ void FPartEditorViewportClient::ZoomCamera(float ZoomAmount) {
     m_CameraOrbitRadius = FMath::Clamp(m_CameraOrbitRadius + ZoomAmount, MinZoom, MaxZoom);
     UpdateCameraPositionFromOrbit();
     Invalidate();
+}
+
+void FPartEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) {
+    FEditorViewportClient::Draw(View, PDI);
+
+    if (!PDI) return;
+
+    if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+        const int32 SphereSides = 12;
+
+        for (int32 i = 0; i < ActivePart->Anchors.Num(); i++) {
+            FVector AnchorLocation = ActivePart->Anchors[i].Position;
+
+            FColor RenderColor = FColor(255, 128, 0);
+            float RenderRadius = 12.0f;
+            float CorePointSize = 18.0f;
+
+            if (i == m_SelectedAnchorIndex) {
+                RenderColor = FColor(0, 255, 64);
+                RenderRadius = 14.0f;
+                CorePointSize = 36.0f;
+            }
+
+            PDI->DrawPoint(AnchorLocation, FLinearColor(RenderColor), CorePointSize, SDPG_World);
+
+            if (i == m_SelectedAnchorIndex) {
+                FVector GroundProjection = FVector(AnchorLocation.X, AnchorLocation.Y, 0.0f);
+                PDI->DrawLine(AnchorLocation, GroundProjection, FLinearColor(RenderColor), SDPG_World, 1.5f);
+            }
+        }
+    }
 }
