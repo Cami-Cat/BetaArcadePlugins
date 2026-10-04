@@ -5,6 +5,8 @@
 #include "IDetailsView.h"
 #include "PreviewScene.h"
 
+DECLARE_MULTICAST_DELEGATE(FOnSelectedObjectChanged);
+
 class FPartEditorViewportClient : public FEditorViewportClient {
 public:
     FPartEditorViewportClient(FPreviewScene& InPreviewScene);
@@ -17,6 +19,7 @@ public:
     virtual void Tick(float DeltaSeconds) override;
 
     void SetDetailsView(TSharedPtr<IDetailsView> InDetailsView);
+    TSharedPtr<IDetailsView> GetDetailsView() { return m_AssociatedDetailsView; }
     void SetInspectedObject(UObject* NewPartObject);
     TWeakObjectPtr<UObject> GetInspectedObject() { return m_CurrentInspectedObject; }
 
@@ -27,6 +30,8 @@ public:
     virtual UE::Widget::EWidgetMode GetWidgetMode() const override;
     virtual FVector GetWidgetLocation() const override;
     virtual bool InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) override;
+
+    FOnSelectedObjectChanged OnSelectedObjectChanged;
 
 private:
     FVector m_OrbitTargetPoint;

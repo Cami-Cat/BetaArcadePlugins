@@ -103,11 +103,9 @@ TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) 
                             .HAlign(HAlign_Center)
                             .VAlign(VAlign_Center)
                             .OnClicked_Lambda([ClientPtr]() -> FReply {
-                                if (ClientPtr.IsValid())
-                                {
+                                if (ClientPtr.IsValid()) {
                                     UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
-                                    if (NewBlankPart)
-                                    {
+                                    if (NewBlankPart) {
                                         ClientPtr->SetInspectedObject(NewBlankPart);
                                     }
                                 }
@@ -137,63 +135,4 @@ TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) 
                 ]
             ]
         ];
-
-    // return SNew(SDockTab)
-    //     .TabRole(ETabRole::NomadTab)
-    //     [
-    //         SNew(SSplitter)
-    //         .Orientation(Orient_Horizontal)
-
-    //         +SSplitter::Slot()
-    //         .Value(0.7f)
-    //         [
-    //             ViewportWidget
-    //         ]
-
-    //         +SSplitter::Slot()
-    //         .Value(0.3f)
-    //         [
-    //             SNew(SVerticalBox)
-    //             +SVerticalBox::Slot()
-    //             .AutoHeight()
-    //             .Padding(4.0f)
-    //             .HAlign(HAlign_Center)
-    //             [
-    //                 SNew(STextBlock)
-    //                 .Text(INVTEXT("Parts Inspector"))
-    //                 .Font(FAppStyle::Get().GetFontStyle("NormalFontBold"))
-    //             ]
-    //             + SVerticalBox::Slot()
-    //             .AutoHeight()
-    //             .Padding(4.0f, 2.0f, 4.0f, 6.0f)
-    //             [
-    //                 SNew(SBox)
-    //                 .HeightOverride(AddPartButtonHeight)
-    //                 [
-    //                     SNew(SButton)
-    //                     .HAlign(HAlign_Center)
-    //                     .VAlign(VAlign_Center)
-    //                     .OnClicked_Lambda([ClientPtr]() -> FReply {
-    //                         if (ClientPtr.IsValid()) {
-    //                             UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
-    //                             if (NewBlankPart) {
-    //                                 ClientPtr->SetInspectedObject(NewBlankPart);
-    //                             }
-    //                         }
-    //                         return FReply::Handled();
-    //                     })
-    //                     [
-    //                         SNew(STextBlock)
-    //                         .Text(INVTEXT("+ Create New Part"))
-    //                         .Font(FAppStyle::Get().GetFontStyle("NormalFontBold"))
-    //                     ]
-    //                 ]
-    //             ]
-    //             + SVerticalBox::Slot()
-    //             .FillHeight(1.0f)
-    //             [
-    //                 PartsDetailsView
-    //             ]
-    //         ]
-    //     ];
 }

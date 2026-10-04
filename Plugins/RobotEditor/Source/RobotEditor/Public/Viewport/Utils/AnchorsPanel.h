@@ -17,6 +17,7 @@ public:
 private:
 
     TSharedRef<ITableRow> OnGenerateAnchorRow(FAnchorListEntryPtr Item, const TSharedRef<STableViewBase>& OwnerTable);
+    void OnInspectorPropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent);
     void OnAnchorSelectionChanged(FAnchorListEntryPtr Selection, ESelectInfo::Type SelectInfo);
 
     TWeakPtr<class SPartEditorViewport> m_AssociatedViewport;

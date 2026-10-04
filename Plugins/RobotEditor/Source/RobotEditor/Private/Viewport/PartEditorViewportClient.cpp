@@ -214,6 +214,7 @@ void FPartEditorViewportClient::SetInspectedObject(UObject* NewPartObject) {
         }
     }
 
+    OnSelectedObjectChanged.Broadcast();
     Invalidate();
 }
 

@@ -9,6 +9,14 @@
 void SAnchorsPanel::Construct(const FArguments& InArgs, TSharedPtr<SPartEditorViewport> InViewportWidget) {
     m_AssociatedViewport = InViewportWidget;
 
+    if (!m_AssociatedViewport.IsValid()) return;
+
+    TSharedPtr<FPartEditorViewportClient> Client = m_AssociatedViewport.Pin()->GetPartClient();
+    TSharedPtr<IDetailsView> DetailsView = Client->GetDetailsView();
+
+    Client->OnSelectedObjectChanged.AddRaw(this, &SAnchorsPanel::RefreshAnchorList);
+    DetailsView->OnFinishedChangingProperties().AddRaw(this, &SAnchorsPanel::OnInspectorPropertyChanged);
+
     ChildSlot
     [
         SNew(SVerticalBox)
@@ -35,16 +43,16 @@ void SAnchorsPanel::Construct(const FArguments& InArgs, TSharedPtr<SPartEditorVi
                 .VAlign(VAlign_Center)
                 .OnClicked_Lambda([this]() -> FReply {
                     if (m_AssociatedViewport.IsValid()) {
-                        TSharedPtr<FPartEditorViewportClient> ClientPtr = m_AssociatedViewport.Pin()->GetPartClient();
-                        if (ClientPtr.IsValid()) {
-                            if (UPDAPart* ActivePart = Cast<UPDAPart>(ClientPtr->GetInspectedObject())) {
+                        TSharedPtr<FPartEditorViewportClient> Client = m_AssociatedViewport.Pin()->GetPartClient();
+                        if (Client.IsValid()) {
+                            if (UPDAPart* ActivePart = Cast<UPDAPart>(Client->GetInspectedObject())) {
                                 FAnchor NewAnchor;
                                 NewAnchor.AnchorName = FString::Printf(TEXT("Anchor_%d"), ActivePart->Anchors.Num());
                                 NewAnchor.Position = FVector::ZeroVector;
                                 ActivePart->Anchors.Add(NewAnchor);
 
                                 RefreshAnchorList();
-                                ClientPtr->Invalidate();
+                                Client->Invalidate();
                             }
                         }
                     }
@@ -80,7 +88,7 @@ void SAnchorsPanel::RefreshAnchorList() {
             for (const FAnchor& Anchor : ActivePart->Anchors) {
                 m_ListDataSource.Add(MakeShareable(new FString(Anchor.AnchorName)));
             }
-        }
+        } 
     }
 
     if (m_ListViewWidget.IsValid()) {
@@ -114,4 +122,8 @@ void SAnchorsPanel::OnAnchorSelectionChanged(FAnchorListEntryPtr Selection, ESel
             ClientPtr->Invalidate();
         }
     }
+}
+
+void SAnchorsPanel::OnInspectorPropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent) {
+    RefreshAnchorList();
 }
