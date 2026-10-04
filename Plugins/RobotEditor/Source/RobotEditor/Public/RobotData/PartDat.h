@@ -27,7 +27,7 @@ public:
     FTooltip Tooltip;
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Part Dat")
     FWeapon WeaponTooltip;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Part Data")
+    UPROPERTY(BlueprintReadOnly, Category = "Part Data")
     TArray<FAnchor> Anchors;
 
 public:
