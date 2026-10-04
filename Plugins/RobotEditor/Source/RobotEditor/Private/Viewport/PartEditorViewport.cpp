@@ -3,6 +3,7 @@
 #include "Components/SkyLightComponent.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "SViewportToolBar.h"
+#include "Framework/Commands/UICommandInfo.h"
 
 void SPartEditorViewport::Construct(const FArguments& InArgs) {
     SEditorViewport::Construct(SEditorViewport::FArguments());
@@ -44,4 +45,15 @@ FReply SPartEditorViewport::OnDrop(const FGeometry& MyGeometry, const FDragDropE
         }
     }
     return FReply::Unhandled();
+}
+
+FReply SPartEditorViewport::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) {
+    if (InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::S) {
+        TSharedPtr<FPartEditorViewportClient> PartClient = GetPartClient();
+        if (PartClient.IsValid()) {
+            PartClient->SaveActiveAsset();
+            return FReply::Handled();
+        }
+    }
+    return SWidget::OnKeyDown(MyGeometry, InKeyEvent);
 }

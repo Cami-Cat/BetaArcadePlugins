@@ -12,8 +12,8 @@ public:
     FPartEditorViewportClient(FPreviewScene& InPreviewScene);
     virtual ~FPartEditorViewportClient() override;
 
+    void SaveActiveAsset();
     virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
-
     virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
     virtual bool InputAxis(const FInputKeyEventArgs& EventArgs) override;
     virtual void Tick(float DeltaSeconds) override;

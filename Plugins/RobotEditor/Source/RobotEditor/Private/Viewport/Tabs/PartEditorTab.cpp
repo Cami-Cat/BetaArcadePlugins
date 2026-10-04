@@ -10,7 +10,6 @@
 #include "IDetailsView.h"
 
 TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) {
-
     FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
     FDetailsViewArgs DetailsViewArgs;

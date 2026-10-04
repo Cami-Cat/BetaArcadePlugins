@@ -9,6 +9,10 @@
 #include "RobotData/PartDat.h"
 #include "MouseDeltaTracker.h"
 #include "Framework/Application/SlateApplication.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "AssetToolsModule.h"
+#include "FileHelpers.h"
+#include "UObject/Package.h"
 #include "UnrealWidget.h"
 
 FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewScene)
@@ -315,4 +319,54 @@ bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLis
         }
     }
     return false;
+}
+
+void FPartEditorViewportClient::SaveActiveAsset() {
+    if (!m_CurrentInspectedObject.IsValid()) return;
+
+    UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get());
+    if (!ActivePart) return;
+
+    UPackage* CurrentPackage = ActivePart->GetPackage();
+
+    if (CurrentPackage == GetTransientPackage()) {
+        FString TargetFolderPackagePath = TEXT("/RobotEditor/Data");
+        FString CleanAssetName = TEXT("New_PDA_Part");
+
+        FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+        FString UniquePackagePath;
+        FString UniqueAssetName;
+        AssetToolsModule.Get().CreateUniqueAssetName(TargetFolderPackagePath + TEXT("/") + CleanAssetName, TEXT(""), UniquePackagePath, UniqueAssetName);
+
+        UPDAPart* NewSavedAsset = Cast<UPDAPart>(AssetToolsModule.Get().CreateAsset(
+            UniqueAssetName,
+            TargetFolderPackagePath,
+            UPDAPart::StaticClass(),
+            nullptr
+        ));
+
+        if (NewSavedAsset) {
+
+            NewSavedAsset->Object = ActivePart->Object;
+            NewSavedAsset->Anchors = ActivePart->Anchors;
+
+            NewSavedAsset->MarkPackageDirty();
+            NewSavedAsset->GetPackage()->MarkPackageDirty();
+
+            TArray<UPackage*> PackagesToSave;
+            PackagesToSave.Add(NewSavedAsset->GetPackage());
+
+            UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+
+            SetInspectedObject(NewSavedAsset);
+        }
+    } else {
+        TArray<UPackage*> PackagesToSave;
+        PackagesToSave.Add(CurrentPackage);
+
+        CurrentPackage->MarkPackageDirty();
+        ActivePart->MarkPackageDirty();
+
+        UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+    }
 }
