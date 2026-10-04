@@ -20,6 +20,7 @@ TSharedPtr<SWidget> SPartEditorViewport::BuildViewportToolbar() {
 void SPartEditorViewport::SetEditingObject(UObject* NewObject) {
     if (m_ViewportClient.IsValid()) {
         m_ViewportClient->SetInspectedObject(NewObject);
+        m_ViewportClient->SetSelectedAnchorIndex(-1);
     }
     return;
 }

@@ -53,11 +53,11 @@ void FPartEditorViewportClient::Tick(float DeltaSeconds) {
 
 bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
     if (EventArgs.Key == EKeys::MouseScrollUp && EventArgs.Event == IE_Pressed) {
-        ZoomCamera(-50.0f);
+        ZoomCamera(-c_ZoomAmount);
         return true;
     }
     if (EventArgs.Key == EKeys::MouseScrollDown && EventArgs.Event == IE_Pressed) {
-        ZoomCamera(50.0f);
+        ZoomCamera(c_ZoomAmount);
         return true;
     }
 
@@ -99,12 +99,6 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
             }
 
             m_SelectedAnchorIndex = SelectedAnchorIndex;
-
-            if (SelectedAnchorIndex != INDEX_NONE) {
-                if (GetWorld()) {
-                    DrawDebugPoint(GetWorld(), ActivePart->Anchors[SelectedAnchorIndex].Position, 20.0f, FColor::Green, false, 2.0f);
-                }
-            }
         }
         Invalidate();
         return true;
@@ -218,7 +212,7 @@ AActor* FPartEditorViewportClient::SpawnActorComponent(UObject* InObject, FActor
 }
 
 void FPartEditorViewportClient::ZoomCamera(float ZoomAmount) {
-    m_CameraOrbitRadius = FMath::Clamp(m_CameraOrbitRadius + ZoomAmount, MinZoom, MaxZoom);
+    m_CameraOrbitRadius = FMath::Clamp(m_CameraOrbitRadius + ZoomAmount, c_MinZoom, c_MaxZoom);
     UpdateCameraPositionFromOrbit();
     Invalidate();
 }
@@ -229,19 +223,15 @@ void FPartEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInter
     if (!PDI) return;
 
     if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
-        const int32 SphereSides = 12;
-
         for (int32 i = 0; i < ActivePart->Anchors.Num(); i++) {
             FVector AnchorLocation = ActivePart->Anchors[i].Position;
 
-            FColor RenderColor = FColor(255, 128, 0);
-            float RenderRadius = 12.0f;
-            float CorePointSize = 18.0f;
+            FColor RenderColor = c_UnselectedAnchorColor;
+            float CorePointSize = c_AnchorSize;
 
             if (i == m_SelectedAnchorIndex) {
-                RenderColor = FColor(0, 255, 64);
-                RenderRadius = 14.0f;
-                CorePointSize = 36.0f;
+                RenderColor = c_SelectedAnchorColor;
+                CorePointSize = c_SelectedAnchorSize;
             }
 
             PDI->DrawPoint(AnchorLocation, FLinearColor(RenderColor), CorePointSize, SDPG_World);

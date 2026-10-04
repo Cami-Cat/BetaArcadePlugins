@@ -32,7 +32,12 @@ private:
     TWeakObjectPtr<UObject> m_CurrentInspectedObject;
     TWeakObjectPtr<AActor> m_SpawnedPreviewActor;
 
-    int32 m_SelectedAnchorIndex;
+    const FColor c_UnselectedAnchorColor = FColor(255, 255, 255);
+    const FColor c_SelectedAnchorColor = FColor(0, 255, 64);
+    const float c_AnchorSize = 12.0f;
+    const float c_SelectedAnchorSize = c_AnchorSize * 1.5;
+
+    int32 m_SelectedAnchorIndex = -1;
 
     AStaticMeshActor* CreateStaticMeshComponent(UStaticMesh* InObject, FActorSpawnParameters& SpawnParams);
     AActor* CreateActorComponent(UBlueprint* InObject, FActorSpawnParameters& SpawnParams);
@@ -41,8 +46,9 @@ private:
     void UpdateCameraPositionFromOrbit();
     void ZoomCamera(float ZoomAmount);
 
-    float MinZoom = 50.0f;
-    float MaxZoom = 5000.0f;
+    const float c_MinZoom = 50.0f;
+    const float c_MaxZoom = 5000.0f;
+    const float c_ZoomAmount = 50.0f;
 
     void OnInspectorPropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent);
 
