@@ -120,8 +120,7 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
             return true;
         }
         else if (EventArgs.Event == IE_Released) {
-            if (GetCurrentWidgetAxis() != EAxisList::None)
-            {
+            if (GetCurrentWidgetAxis() != EAxisList::None) {
                 SetCurrentWidgetAxis(EAxisList::None);
                 Invalidate();
                 return FEditorViewportClient::InputKey(EventArgs);
