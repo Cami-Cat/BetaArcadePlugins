@@ -1,4 +1,5 @@
 #include "Viewport/PartEditorViewportClient.h"
+#include "Viewport/Utils/AnchorsPanel.h"
 #include "Viewport/Tabs/PartEditorTab.h"
 #include "Viewport/PartEditorViewport.h"
 #include "Widgets/Layout/SSplitter.h"
@@ -40,63 +41,8 @@ TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) 
                 + SSplitter::Slot()
                 .Value(0.2f)
                 [
-                    SNew(SVerticalBox)
-                    + SVerticalBox::Slot()
-                    .AutoHeight()
-                    .Padding(6.0f)
-                    .HAlign(HAlign_Center)
-                    [
-                        SNew(STextBlock)
-                        .Text(INVTEXT("Part Anchors"))
-                        .Font(FAppStyle::Get().GetFontStyle("NormalFontBold"))
-                    ]
-                                        + SVerticalBox::Slot()
-                    .AutoHeight()
-                    .Padding(4.0f, 2.0f, 4.0f, 6.0f)
-                    [
-                        SNew(SBox)
-                        .HeightOverride(32.0f) // Constrain button thick properties cleanly
-                        [
-                            SNew(SButton)
-                            .HAlign(HAlign_Center)
-                            .VAlign(VAlign_Center)
-                            .OnClicked_Lambda([ViewportWidget]() -> FReply {
-                                TSharedPtr<FPartEditorViewportClient> ClientPtr = ViewportWidget->GetPartClient();
-                                if (ClientPtr.IsValid()) {
-                                    UPDAPart* ActivePart = Cast<UPDAPart>(ClientPtr->GetInspectedObject());
-                                    if (ActivePart) {
-                                        FAnchor NewAnchor;
-                                        NewAnchor.AnchorName = FString::Format(TEXT("Anchor_{0}"), { ActivePart->Anchors.Num() });
-                                        NewAnchor.Position = FVector::ZeroVector;
-
-                                        ActivePart->Anchors.Add(NewAnchor);
-                                        ClientPtr->Invalidate();
-                                    }
-                                    UE_LOG(LogTemp, Log, TEXT("Add Anchor Button Clicked! Ready to append struct index."));
-                                }
-                                return FReply::Handled();
-                            })
-                            [
-                                SNew(STextBlock)
-                                .Text(INVTEXT("+ Add 3D Anchor Point"))
-                                .Font(FAppStyle::Get().GetFontStyle("NormalFont"))
-                            ]
-                        ]
-                    ]
-                    + SVerticalBox::Slot()
-                    .FillHeight(1.0f)
-                    [
-                        SNew(SBorder)
-                        .BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
-                        .HAlign(HAlign_Center)
-                        .VAlign(VAlign_Center)
-                        [
-                            SNew(STextBlock)
-                            .Text(INVTEXT("[Anchors List Placeholder]"))
-                        ]
-                    ]
+                    SNew(SAnchorsPanel, ViewportWidget)
                 ]
-
                 + SSplitter::Slot()
                 .Value(0.55f)
                 [

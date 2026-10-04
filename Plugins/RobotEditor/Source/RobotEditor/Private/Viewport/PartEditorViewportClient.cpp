@@ -5,7 +5,11 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "SceneManagement.h"
+#include "DrawDebugHelpers.h"
 #include "RobotData/PartDat.h"
+#include "MouseDeltaTracker.h"
+#include "Framework/Application/SlateApplication.h"
+#include "UnrealWidget.h"
 
 FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorViewportClient(nullptr, &InPreviewScene) {
@@ -66,69 +70,100 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
             m_bIsOrbiting = true;
             Viewport->LockMouseToViewport(true);
         }
-        else {
+        else if (EventArgs.Event == IE_Released) {
             m_bIsOrbiting = false;
             Viewport->LockMouseToViewport(false);
         }
         return true;
     }
 
-    if (EventArgs.Key == EKeys::LeftMouseButton && EventArgs.Event == IE_Pressed) {
-        int32 MouseX = Viewport->GetMouseX();
-        int32 MouseY = Viewport->GetMouseY();
+    if (EventArgs.Key == EKeys::LeftMouseButton) {
+        if (EventArgs.Event == IE_Pressed) {
+            if (Viewport && m_CurrentInspectedObject.IsValid()) {
+                int32 MouseX = Viewport->GetMouseX();
+                int32 MouseY = Viewport->GetMouseY();
 
-        FViewportCursorLocation CursorLocation = GetCursorWorldLocationFromMousePos();
-        FVector RayOrigin = CursorLocation.GetOrigin();
-        FVector RayDirection = CursorLocation.GetDirection();
-        FVector RayEnd = RayOrigin + (RayDirection * 10000.0f);
+                HHitProxy* HitResult = Viewport->GetHitProxy(MouseX, MouseY);
+                if (HitResult && HitResult->IsA(HWidgetAxis::StaticGetType())) {
+                    HWidgetAxis* WidgetAxis = (HWidgetAxis*)HitResult;
+                    SetCurrentWidgetAxis(WidgetAxis->Axis);
+                    return FEditorViewportClient::InputKey(EventArgs);
+                }
 
-        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
-            float BestHitDistance = FLT_MAX;
-            int32 SelectedAnchorIndex = INDEX_NONE;
+                SetCurrentWidgetAxis(EAxisList::None);
 
-            for (int32 i = 0; i < ActivePart->Anchors.Num(); i++) {
-                FVector PointPos = ActivePart->Anchors[i].Position;
+                FViewportCursorLocation CursorLocation = GetCursorWorldLocationFromMousePos();
+                FVector RayOrigin = CursorLocation.GetOrigin();
+                FVector RayDirection = CursorLocation.GetDirection();
+                FVector RayEnd = RayOrigin + (RayDirection * 10000.0f);
 
-                FVector ClosestPointOnRay = FMath::ClosestPointOnSegment(PointPos, RayOrigin, RayEnd);
-                float DistanceToRay = FVector::Dist(PointPos, ClosestPointOnRay);
+                if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+                    float BestHitDistance = FLT_MAX;
+                    int32 SelectedAnchorIndex = INDEX_NONE;
 
-                if (DistanceToRay < 25.0f &&  DistanceToRay < BestHitDistance) {
-                    BestHitDistance = DistanceToRay;
-                    SelectedAnchorIndex = i;
+                    for (int32 i = 0; i < ActivePart->Anchors.Num(); i++) {
+                        FVector PointPos = ActivePart->Anchors[i].Position;
+
+                        FVector ClosestPointOnRay = FMath::ClosestPointOnSegment(PointPos, RayOrigin, RayEnd);
+                        float DistanceToRay = FVector::Dist(PointPos, ClosestPointOnRay);
+
+                        if (DistanceToRay < 25.0f &&  DistanceToRay < BestHitDistance) {
+                            BestHitDistance = DistanceToRay;
+                            SelectedAnchorIndex = i;
+                        }
+                    }
+
+                    m_SelectedAnchorIndex = SelectedAnchorIndex;
+                    Invalidate();
                 }
             }
-
-            m_SelectedAnchorIndex = SelectedAnchorIndex;
+            return true;
         }
-        Invalidate();
-        return true;
+        else if (EventArgs.Event == IE_Released) {
+            if (GetCurrentWidgetAxis() != EAxisList::None)
+            {
+                SetCurrentWidgetAxis(EAxisList::None);
+                Invalidate();
+                return FEditorViewportClient::InputKey(EventArgs);
+            }
+
+            SetCurrentWidgetAxis(EAxisList::None);
+            Invalidate();
+            return true;
+        }
     }
 
     return FEditorViewportClient::InputKey(EventArgs);
 }
 
 bool FPartEditorViewportClient::InputAxis(const FInputKeyEventArgs& EventArgs) {
-    if (!m_bIsOrbiting) return false;
 
-
-    FRotator CurrentRotation = GetViewRotation();
+    EAxisList::Type ActiveAxis = GetCurrentWidgetAxis();
     float Delta = EventArgs.AmountDepressed;
 
-    if (EventArgs.Key == EKeys::MouseX) {
-        CurrentRotation.Yaw += Delta * 0.5f;
-        SetViewRotation(CurrentRotation);
-        UpdateCameraPositionFromOrbit();
-        Invalidate();
-        return true;
-    }
-    else if (EventArgs.Key == EKeys::MouseY) {
-        CurrentRotation.Pitch = FMath::Clamp(CurrentRotation.Pitch + (Delta * 0.5f), -85.0f, 85.0f);
-        SetViewRotation(CurrentRotation);
-        UpdateCameraPositionFromOrbit();
-        Invalidate();
-        return true;
+    if (ActiveAxis != EAxisList::None) {
+        return FEditorViewportClient::InputAxis(EventArgs);
     }
 
+
+    if (m_bIsOrbiting) {
+        FRotator CurrentRotation = GetViewRotation();
+
+        if (EventArgs.Key == EKeys::MouseX) {
+            CurrentRotation.Yaw += Delta * 0.5f;
+            SetViewRotation(CurrentRotation);
+            UpdateCameraPositionFromOrbit();
+            Invalidate();
+            return true;
+        }
+        else if (EventArgs.Key == EKeys::MouseY) {
+            CurrentRotation.Pitch = FMath::Clamp(CurrentRotation.Pitch + (Delta * 0.5f), -85.0f, 85.0f);
+            SetViewRotation(CurrentRotation);
+            UpdateCameraPositionFromOrbit();
+            Invalidate();
+            return true;
+        }
+    }
     return FEditorViewportClient::InputAxis(EventArgs);
 }
 
@@ -237,9 +272,47 @@ void FPartEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInter
             PDI->DrawPoint(AnchorLocation, FLinearColor(RenderColor), CorePointSize, SDPG_World);
 
             if (i == m_SelectedAnchorIndex) {
-                FVector GroundProjection = FVector(AnchorLocation.X, AnchorLocation.Y, 0.0f);
-                PDI->DrawLine(AnchorLocation, GroundProjection, FLinearColor(RenderColor), SDPG_World, 1.5f);
+                FVector ZeroProjection = FVector::ZeroVector;
+                PDI->DrawLine(AnchorLocation, ZeroProjection, FLinearColor(RenderColor), SDPG_World, 0.2f);
             }
         }
     }
+}
+
+UE::Widget::EWidgetMode FPartEditorViewportClient::GetWidgetMode() const {
+    if (m_SelectedAnchorIndex != INDEX_NONE && m_CurrentInspectedObject.IsValid()) {
+        return UE::Widget::WM_Translate;
+    }
+
+    return UE::Widget::WM_None;
+}
+
+FVector FPartEditorViewportClient::GetWidgetLocation() const {
+    if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+        if (ActivePart->Anchors.IsValidIndex(m_SelectedAnchorIndex)) {
+            return ActivePart->Anchors[m_SelectedAnchorIndex].Position;
+        }
+    }
+    return FVector::ZeroVector;
+}
+
+bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisList::Type InAxis, FVector& Drag, FRotator& Rot, FVector& Scale) {
+    if (InAxis == EAxisList::None || Drag.IsZero()) {
+        return false;
+    }
+
+    if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+        if (ActivePart->Anchors.IsValidIndex(m_SelectedAnchorIndex)) {
+            ActivePart->Anchors[m_SelectedAnchorIndex].Position += Drag;
+            ActivePart->MarkPackageDirty();
+
+            if (m_AssociatedDetailsView.IsValid()) {
+                m_AssociatedDetailsView->SetObject(ActivePart, true);
+            }
+
+            Invalidate();
+            return true;
+        }
+    }
+    return false;
 }

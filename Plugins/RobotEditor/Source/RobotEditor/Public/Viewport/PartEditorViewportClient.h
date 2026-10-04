@@ -23,6 +23,11 @@ public:
     void SetSelectedAnchorIndex(int32 NewIndex) { m_SelectedAnchorIndex = NewIndex; }
     int32 GetSelectedAnchorIndex() const { return m_SelectedAnchorIndex; }
 
+    virtual bool CanSetWidgetMode(UE::Widget::EWidgetMode NewMode) const override { return true; }
+    virtual UE::Widget::EWidgetMode GetWidgetMode() const override;
+    virtual FVector GetWidgetLocation() const override;
+    virtual bool InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) override;
+
 private:
     FVector m_OrbitTargetPoint;
     float m_CameraOrbitRadius;
