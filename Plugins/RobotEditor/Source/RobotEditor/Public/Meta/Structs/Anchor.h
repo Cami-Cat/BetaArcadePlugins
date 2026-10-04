@@ -10,13 +10,13 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Anchor Data")
     FString AnchorName = TEXT("New Anchor");
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Anchor Data")
-    FTransform AnchorTransform;
+    FVector Position;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Anchor Data")
     bool bIsConnected;
 
     FAnchor()
         : AnchorName("New Anchor"),
-          AnchorTransform(),
+          Position(FVector::ZeroVector),
           bIsConnected(false)
     {}
 };

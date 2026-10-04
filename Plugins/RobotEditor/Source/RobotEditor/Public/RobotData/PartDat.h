@@ -4,6 +4,7 @@
 #include "Engine/DataAsset.h"
 #include "Meta/Structs/Tooltip.h"
 #include "Meta/Structs/WeaponTooltip.h"
+#include "Meta/Structs/Anchor.h"
 #include "PartDat.generated.h"
 
 class UNiagaraSystem;

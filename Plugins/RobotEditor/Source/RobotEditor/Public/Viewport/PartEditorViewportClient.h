@@ -16,6 +16,7 @@ public:
 
     void SetDetailsView(TSharedPtr<IDetailsView> InDetailsView);
     void SetInspectedObject(UObject* NewPartObject);
+    TWeakObjectPtr<UObject> GetInspectedObject() { return m_CurrentInspectedObject; }
 
 private:
     FVector m_OrbitTargetPoint;

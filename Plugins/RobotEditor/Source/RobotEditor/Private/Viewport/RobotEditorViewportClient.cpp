@@ -1,4 +1,5 @@
 #include "Viewport/RobotEditorViewportClient.h"
+#include "RobotData/PartDat.h"
 
 FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorViewportClient(nullptr, &InPreviewScene) {
@@ -46,36 +47,6 @@ bool FRobotEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
     }
 
     if (EventArgs.Key == EKeys::LeftMouseButton && EventArgs.Event == IE_Pressed) {
-        int32 MouseX = Viewport->GetMouseX();
-        int32 MouseY = Viewport->GetMouseY();
-
-        FViewportCursorLocation CursorLocation(this, this, MouseX, MouseY);
-        FVector RayOrigin = CursorLocation.GetOrigin();
-        FVector RayDirection = CursorLocation.GetDirection();
-        FVector RayEnd = RayOrigin + (RayDirection * 10000.0f);
-
-        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
-            float BestHitDistance = FLT_MAX;
-            int32 SelectedAnchorIndex = INDEX_NONE;
-
-            for (int32 i = 0, i < ActivePart->Anchors.Num(); i++) {
-                FVector PointPos = ActivePart->Anchors[i].Position;
-
-                FVector ClosestPointOnRay = FMath::ClosestPointOnSegment(PointPos, RayOrigin, RayEnd);
-                float DistanceToRay = FVector::Dist(PointPos, ClosestPointOnRay);
-
-                if (DistanceToRay < 25.0f &&  DistanceToRay < BestHitDistance) {
-                    BestHitDistance = DistanceToRay;
-                    SelectedAnchorIndex = i;
-                }
-            }
-
-            if (SelectedAnchorIndex != INDEX_NONE) {
-                if (PreviewScene && PreviewScene->GetWorld() && PreviewScene->GetWorld()->LineBatcher) {
-                    PreviewScene->GetWorld()->LineBatcher->DrawPoint(ActivePart->Anchors[SelectedAnchorIndex].Position, FLinearColor::Green, 20.0f, SDPG_Foreground, 2.0f);
-                }
-            }
-        }
         return true;
     }
 

@@ -76,7 +76,36 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
         int32 MouseX = Viewport->GetMouseX();
         int32 MouseY = Viewport->GetMouseY();
 
-        UE_LOG(LogTemp, Warning, TEXT("Click triggered at coordinates: [%d,%d]"), MouseX, MouseY);
+        FViewportCursorLocation CursorLocation = GetCursorWorldLocationFromMousePos();
+        FVector RayOrigin = CursorLocation.GetOrigin();
+        FVector RayDirection = CursorLocation.GetDirection();
+        FVector RayEnd = RayOrigin + (RayDirection * 10000.0f);
+
+        UE_LOG(LogTemp, Log, TEXT("Tracing 3D Ray from Cam Origin: %s"), *RayOrigin.ToString());
+
+        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+            float BestHitDistance = FLT_MAX;
+            int32 SelectedAnchorIndex = INDEX_NONE;
+
+            for (int32 i = 0; i < ActivePart->Anchors.Num(); i++) {
+                FVector PointPos = ActivePart->Anchors[i].Position;
+
+                FVector ClosestPointOnRay = FMath::ClosestPointOnSegment(PointPos, RayOrigin, RayEnd);
+                float DistanceToRay = FVector::Dist(PointPos, ClosestPointOnRay);
+
+                if (DistanceToRay < 25.0f &&  DistanceToRay < BestHitDistance) {
+                    BestHitDistance = DistanceToRay;
+                    SelectedAnchorIndex = i;
+                }
+            }
+
+            if (SelectedAnchorIndex != INDEX_NONE) {
+                UE_LOG(LogTemp, Warning, TEXT("SUCCESS! Selected Anchor Point: %s at Index: %d"), *ActivePart->Anchors[SelectedAnchorIndex].AnchorName, SelectedAnchorIndex);
+                if (GetWorld()) {
+                    DrawDebugPoint(GetWorld(), ActivePart->Anchors[SelectedAnchorIndex].Position, 20.0f, FColor::Green, false, 2.0f);
+                }
+            }
+        }
         return true;
     }
 
