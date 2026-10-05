@@ -1,5 +1,6 @@
 #include "Viewport/PartEditorViewportClient.h"
 #include "Viewport/Utils/AnchorsPanel.h"
+#include "Viewport/Utils/ContentPanel.h"
 #include "Viewport/Tabs/PartEditorTab.h"
 #include "Viewport/PartEditorViewport.h"
 #include "Widgets/Layout/SSplitter.h"
@@ -72,66 +73,7 @@ TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) 
             + SSplitter::Slot()
             .Value(0.25f)
             [
-                SNew(SVerticalBox)
-
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(6.0f, 4.0f)
-                [
-                    SNew(STextBlock)
-                    .Text(INVTEXT("Parts Library Asset Registry"))
-                    .Font(FAppStyle::Get().GetFontStyle("NormalFontBold"))
-                ]
-
-                + SVerticalBox::Slot()
-                .FillHeight(1.0f)
-                .Padding(4.0f)
-                [
-                    SNew(SHorizontalBox)
-
-                    + SHorizontalBox::Slot()
-                    .AutoWidth()
-                    .Padding(4.0f)
-                    [
-                        SNew(SBox)
-                        .WidthOverride(96.0f)
-                        .HeightOverride(96.0f)
-                        [
-                            SNew(SButton)
-                            .ButtonStyle(FAppStyle::Get(), "SimpleButton")
-                            .HAlign(HAlign_Center)
-                            .VAlign(VAlign_Center)
-                            .OnClicked_Lambda([ClientPtr]() -> FReply {
-                                if (ClientPtr.IsValid()) {
-                                    UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
-                                    if (NewBlankPart) {
-                                        ClientPtr->SetInspectedObject(NewBlankPart);
-                                    }
-                                }
-                                return FReply::Handled();
-                            })
-                            [
-                                SNew(STextBlock)
-                                .Text(INVTEXT("+"))
-                                .Font(FAppStyle::Get().GetFontStyle("HeadingExtraLarge"))
-                            ]
-                        ]
-                    ]
-
-                    + SHorizontalBox::Slot()
-                    .FillWidth(1.0f)
-                    .Padding(8.0f, 0.0f)
-                    [
-                        SNew(SBorder)
-                        .BorderImage(FAppStyle::Get().GetBrush("Brushes.Panel"))
-                        .HAlign(HAlign_Center)
-                        .VAlign(VAlign_Center)
-                        [
-                            SNew(STextBlock)
-                            .Text(INVTEXT("[Asset Thumbnail Gallery Row Placeholder]"))
-                        ]
-                    ]
-                ]
+                SNew(SPartContentBrowser, ViewportWidget)
             ]
         ];
 }

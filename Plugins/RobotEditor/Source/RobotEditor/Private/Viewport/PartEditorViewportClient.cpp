@@ -5,6 +5,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "SceneManagement.h"
+#include "Viewport/Utils/ContentPanel.h"
 #include "DrawDebugHelpers.h"
 #include "RobotData/PartDat.h"
 #include "MouseDeltaTracker.h"
@@ -424,5 +425,9 @@ void FPartEditorViewportClient::SaveActiveAsset() {
 
             SetInspectedObject(NewSavedAsset);
         }
+    }
+
+    if (SPartContentBrowser::m_Instance.IsValid()) {
+        SPartContentBrowser::m_Instance.Pin()->ScanPluginDirectory();
     }
 }
