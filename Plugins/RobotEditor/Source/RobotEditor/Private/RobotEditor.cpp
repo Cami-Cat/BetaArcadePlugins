@@ -9,7 +9,6 @@
 #include "Viewport/Tabs/PartEditorTab.h"
 #include "Viewport/RobotEditorViewport.h"
 #include "Viewport/PartEditorViewport.h"
-#include "Meta/Enums/TabSwitcher.h"
 #include "ToolMenus.h"
 
 #define LOCTEXT_NAMESPACE "FRobotEditorModule"
