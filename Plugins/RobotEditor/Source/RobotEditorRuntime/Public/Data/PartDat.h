@@ -29,7 +29,7 @@ public:
     FTooltip Tooltip;
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Part Dat")
     FWeapon WeaponTooltip;
-    UPROPERTY(BlueprintReadOnly, Category = "Part Data")
+    UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Part Data")
     TArray<FAnchor> Anchors;
 
 public:

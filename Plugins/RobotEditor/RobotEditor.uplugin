@@ -18,8 +18,13 @@
 		{
 			"Name": "PartEditor",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "PostEngineInit"
 		},
+        {
+            "Name": "RobotEditor",
+            "Type": "Editor",
+            "LoadingPhase": "PostEngineInit"
+        },
         {
             "Name": "RobotEditorRuntime",
             "Type": "Runtime",
