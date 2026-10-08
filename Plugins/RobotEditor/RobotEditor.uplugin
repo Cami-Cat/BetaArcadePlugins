@@ -16,9 +16,14 @@
 	"Installed": false,
 	"Modules": [
 		{
-			"Name": "RobotEditor",
+			"Name": "PartEditor",
 			"Type": "Editor",
 			"LoadingPhase": "Default"
-		}
+		},
+        {
+            "Name": "RobotEditorRuntime",
+            "Type": "Runtime",
+            "LoadingPhase": "PreDefault"
+        }
 	]
 }

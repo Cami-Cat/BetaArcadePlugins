@@ -94,4 +94,4 @@ void FRobotEditorModule::RegisterMenus() {
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FRobotEditorModule, RobotEditor)
+IMPLEMENT_MODULE(FRobotEditorModule, PartEditor)

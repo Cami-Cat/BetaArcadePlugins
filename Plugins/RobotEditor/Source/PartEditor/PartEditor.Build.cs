@@ -2,25 +2,22 @@
 
 using UnrealBuildTool;
 
-public class RobotEditor : ModuleRules
+public class PartEditor : ModuleRules
 {
-	public RobotEditor(ReadOnlyTargetRules Target) : base(Target)
+	public PartEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicIncludePaths.AddRange(
 			new string[] {
-                "RobotEditor/Public",
-                "RobotEditor/Public/Viewport"
-				// ... add public include paths required here ...
+                "RobotEditor/PartEditor/Public",
 			}
 			);
 
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
-                "RobotEditor/Private",
-				"RobotEditor/Private/Viewport"
+                "RobotEditor/PartEditor/Private",
 			}
 			);
 
@@ -51,7 +48,8 @@ public class RobotEditor : ModuleRules
                 "LevelEditor",
                 "ContentBrowser",
                 "PropertyEditor",
-                "InteractiveToolsFramework"
+                "InteractiveToolsFramework",
+                "RobotEditorRuntime"
 				// ... add private dependencies that you statically link with here ...
 			}
 			);
