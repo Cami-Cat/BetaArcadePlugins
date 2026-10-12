@@ -21,5 +21,15 @@ UCLASS(BlueprintType, Blueprintable)
 class ROBOTEDITORRUNTIME_API URobotDataContainer : public UObject {
 GENERATED_BODY()
 public:
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Robot Data")
     FRobotData Data;
+    UPROPERTY(BlueprintReadWrite, Instanced, EditAnywhere, Category = "Part Data")
+    TArray<UPartDataContainer*> PartSpecificData;
+};
+
+UCLASS(BlueprintType, Blueprintable)
+class ROBOTEDITORRUNTIME_API UPartDataContainer : public UObject {
+GENERATED_BODY()
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Part Data")
+    FGuid PartRefId;
 };
