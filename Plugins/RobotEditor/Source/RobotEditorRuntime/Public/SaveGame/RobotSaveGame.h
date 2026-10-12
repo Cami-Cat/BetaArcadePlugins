@@ -10,11 +10,7 @@ class ROBOTEDITORRUNTIME_API URobotSaveGame : public USaveGame {
 GENERATED_BODY()
 public:
 
-    UPROPERTY(BlueprintReadWrite, Category = "Save Data")
-    FRobotDataSnapshot SavedSnapshot;
+    UPROPERTY(Instanced, EditAnywhere, BlueprintReadWrite, Category = "Save")
+    URobotDataContainer* SaveData;
 
-public:
-
-    UFUNCTION(BlueprintCallable, Category = "Save")
-    static void SaveLocalData(const FRobotDataSnapshot& Data, FString SlotName);
 };
