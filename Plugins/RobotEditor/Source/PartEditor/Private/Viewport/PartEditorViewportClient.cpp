@@ -8,6 +8,8 @@
 #include "Viewport/Utils/ContentPanel.h"
 #include "DrawDebugHelpers.h"
 #include "Data/PartDat.h"
+#include "SnappingUtils.h"
+#include "ScopedTransaction.h"
 #include "MaterialDomain.h"
 #include "Materials/MaterialRenderProxy.h"
 #include "MouseDeltaTracker.h"
@@ -20,6 +22,8 @@
 #include "UObject/Package.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "UnrealWidget.h"
+
+#define LOCTEXT_NAMESPACE "PartEditor"
 
 FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorViewportClient(nullptr, &InPreviewScene) {
@@ -331,6 +335,11 @@ void FPartEditorViewportClient::ZoomCamera(float ZoomAmount) {
     Invalidate();
 }
 
+/*
+This is a custom drawing override function so that we can draw our own little things ontop. This allows us to draw Anchors, Collision Points and even custom boxes around that for preview.
+We can extend this to draw more in the future, or we can re-use this later on in a different plugin or feature to draw some other things with similar logic.
+For now, this function exists solely to give the user a way to see them edit things within our viewport client.
+*/
 void FPartEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) {
     FEditorViewportClient::Draw(View, PDI);
 
@@ -446,55 +455,90 @@ UE::Widget::EWidgetMode FPartEditorViewportClient::GetWidgetMode() const {
     return UE::Widget::WM_None;
 }
 
+/*
+This updates the position of the gizmo based on where our selected part is, if there is no selected part, the gizmo will just draw at ZERO in the world, although this would mean something is broken.
+In that case, revise this code.
+*/
 FVector FPartEditorViewportClient::GetWidgetLocation() const {
-    if (m_SelectedType == EPartSelectionType::Anchor) {
-        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
-            if (ActivePart->Anchors.IsValidIndex(m_SelectedIndex)) {
-                return ActivePart->Anchors[m_SelectedIndex].Position;
+    switch(m_SelectedType) {
+        case EPartSelectionType::Anchor: {
+            if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+                if (ActivePart->Anchors.IsValidIndex(m_SelectedIndex)) {
+                    return ActivePart->Anchors[m_SelectedIndex].Position;
+                }
             }
+            break;
         }
-    } else if (m_SelectedType == EPartSelectionType::CollisionPoint) {
-        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
-            if (ActivePart->CollisionPoints.IsValidIndex(m_SelectedIndex)) {
-                return ActivePart->CollisionPoints[m_SelectedIndex];
+        case EPartSelectionType::CollisionPoint: {
+            if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+                if (ActivePart->CollisionPoints.IsValidIndex(m_SelectedIndex)) {
+                    return ActivePart->CollisionPoints[m_SelectedIndex];
+                }
             }
+            break;
         }
+        default:
+            break;
     }
+
     return FVector::ZeroVector;
 }
 
+/*
+Here, we move our gizmos based on the delta-input of our widget. This is handled separate to InputAxis and InputKey, although the latter is what allows this function to work.
+We don't need to snap positions for our anchors, these can be freely placed and fine-tuned through the details panel on the right. But for our collision points,
+we wish to snap to a specific value.
+*/
 bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisList::Type InAxis, FVector& Drag, FRotator& Rot, FVector& Scale) {
     if (InAxis == EAxisList::None || Drag.IsZero()) {
         return false;
     }
-    if (m_SelectedType == EPartSelectionType::Anchor) {
-        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+
+    UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get());
+    if (!ActivePart) return false;
+
+    if (!ActivePart->HasAnyFlags(RF_Transactional)) {
+        ActivePart->SetFlags(RF_Transactional);
+    }
+
+    FScopedTransaction Transaction(LOCTEXT("Move Anchor or Collision Point", "Edit internal part properties."));
+
+    bool bHandled = false;
+
+    switch(m_SelectedType) {
+        case EPartSelectionType::Anchor: {
             if (ActivePart->Anchors.IsValidIndex(m_SelectedIndex)) {
+                ActivePart->Modify();
                 ActivePart->Anchors[m_SelectedIndex].Position += Drag;
-                ActivePart->MarkPackageDirty();
-
-                if (m_AssociatedDetailsView.IsValid()) {
-                    m_AssociatedDetailsView->SetObject(ActivePart, true);
-                }
-
-                Invalidate();
-                return true;
+                bHandled = true;
             }
+            break;
         }
-    } else if (m_SelectedType == EPartSelectionType::CollisionPoint) {
-        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+        case EPartSelectionType::CollisionPoint: {
             if (ActivePart->CollisionPoints.IsValidIndex(m_SelectedIndex)) {
-                ActivePart->CollisionPoints[m_SelectedIndex] += Drag;
-                ActivePart->MarkPackageDirty();
+                ActivePart->Modify();
+                FVector CurrentPos = ActivePart->CollisionPoints[m_SelectedIndex];
+                FVector NewPos = CurrentPos + Drag;
 
-                if (m_AssociatedDetailsView.IsValid()) {
-                    m_AssociatedDetailsView->SetObject(ActivePart, true);
-                }
+                FSnappingUtils::SnapPointToGrid(NewPos, FVector(c_GridSize));
+                Drag = NewPos - CurrentPos;
 
-                Invalidate();
-                return true;
+                ActivePart->CollisionPoints[m_SelectedIndex] = NewPos;
+                bHandled = true;
             }
+            break;
         }
+        default:
+            break;
+    }
+    if (bHandled) {
+        ActivePart->MarkPackageDirty();
+
+        if (m_AssociatedDetailsView.IsValid()) {
+            m_AssociatedDetailsView->SetObject(ActivePart, true);
+        }
+        Invalidate();
+        return bHandled;
     }
 
     return false;
@@ -606,3 +650,5 @@ void FPartEditorViewportClient::SaveActiveAsset() {
         SPartContentBrowser::m_Instance.Pin()->ScanPluginDirectory();
     }
 }
+
+#undef LOCTEXT_NAMESPACE

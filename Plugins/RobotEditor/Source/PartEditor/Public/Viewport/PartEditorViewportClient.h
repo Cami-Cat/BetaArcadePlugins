@@ -60,6 +60,7 @@ private:
     const int c_BoundingBoxWireThickness = 1;
     const float c_AnchorSize = 12.0f;
     const float c_SelectedAnchorSize = c_AnchorSize * 1.5;
+    const float GridSize = 1.0f;
 
     int32 m_SelectedIndex = -1;
     EPartSelectionType m_SelectedType = EPartSelectionType::None;
