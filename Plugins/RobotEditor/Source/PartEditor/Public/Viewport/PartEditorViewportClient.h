@@ -7,6 +7,8 @@
 
 DECLARE_MULTICAST_DELEGATE(FOnSelectedObjectChanged);
 
+class UPDAPart;
+
 enum class EPartSelectionType : uint8 {
     None,
     Anchor,
@@ -25,31 +27,34 @@ public:
     virtual void Tick(float DeltaSeconds) override;
 
     void SetDetailsView(TSharedPtr<IDetailsView> InDetailsView);
-    TSharedPtr<IDetailsView> GetDetailsView() { return m_AssociatedDetailsView; }
     void SetInspectedObject(UObject* NewPartObject);
-    TWeakObjectPtr<UObject> GetInspectedObject() { return m_CurrentInspectedObject; }
     void SetPartSelectionType(EPartSelectionType Type) { m_SelectedType = Type; }
-
     void SetSelectedIndex(int32 NewIndex) { m_SelectedIndex = NewIndex; }
+    TSharedPtr<IDetailsView> GetDetailsView() { return m_AssociatedDetailsView; }
+    TWeakObjectPtr<UObject> GetInspectedObject() { return m_CurrentInspectedObject; }
     int32 GetSelectedIndex() const { return m_SelectedIndex; }
-
-    virtual bool CanSetWidgetMode(UE::Widget::EWidgetMode NewMode) const override { return true; }
     virtual UE::Widget::EWidgetMode GetWidgetMode() const override;
     virtual FVector GetWidgetLocation() const override;
+
+    virtual bool CanSetWidgetMode(UE::Widget::EWidgetMode NewMode) const override { return true; }
     virtual bool InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) override;
 
     FOnSelectedObjectChanged OnSelectedObjectChanged;
 
 private:
+
     FVector m_OrbitTargetPoint;
     float m_CameraOrbitRadius;
     bool m_bIsOrbiting;
     bool m_bDrawAnchors = true;
     bool m_bDrawCollision = true;
+    int32 m_SelectedIndex = -1;
+    EPartSelectionType m_SelectedType = EPartSelectionType::None;
 
     TSharedPtr<IDetailsView> m_AssociatedDetailsView;
     TWeakObjectPtr<UObject> m_CurrentInspectedObject;
     TWeakObjectPtr<AActor> m_SpawnedPreviewActor;
+    TUniquePtr<FScopedTransaction> m_ScopedDragTransaction;
 
     const FColor c_UnselectedAnchorColor = FColor(255, 255, 255);
     const FColor c_SelectedAnchorColor = FColor(0, 255, 64);
@@ -60,22 +65,21 @@ private:
     const int c_BoundingBoxWireThickness = 1;
     const float c_AnchorSize = 12.0f;
     const float c_SelectedAnchorSize = c_AnchorSize * 1.5;
-    const float GridSize = 1.0f;
-
-    int32 m_SelectedIndex = -1;
-    EPartSelectionType m_SelectedType = EPartSelectionType::None;
-
-    AStaticMeshActor* CreateStaticMeshComponent(UStaticMesh* InObject, FActorSpawnParameters& SpawnParams);
-    AActor* CreateActorComponent(UBlueprint* InObject, FActorSpawnParameters& SpawnParams);
-    AActor* SpawnActorComponent(UObject* InObject, FActorSpawnParameters& SpawnParams);
-
-    void UpdateCameraPositionFromOrbit();
-    void ZoomCamera(float ZoomAmount);
-
+    const float c_GridSnap = 0.5f;
     const float c_MinZoom = 50.0f;
     const float c_MaxZoom = 5000.0f;
     const float c_ZoomAmount = 50.0f;
 
+private:
+
+    AStaticMeshActor* CreateStaticMeshComponent(UStaticMesh* InObject, FActorSpawnParameters& SpawnParams);
+    AActor* CreateActorComponent(UBlueprint* InObject, FActorSpawnParameters& SpawnParams);
+    AActor* SpawnActorComponent(UObject* InObject, FActorSpawnParameters& SpawnParams);
+    void TrackingStarted(const FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge) override;
+    void TrackingStopped() override;
+    void UpdateCameraPositionFromOrbit();
+    void ZoomCamera(float ZoomAmount);
     void OnInspectorPropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent);
+    void SaveNewAsset(UPDAPart* ActivePart, const FString& ChosenPackagePath, const FString& CurrentName);
 
 };

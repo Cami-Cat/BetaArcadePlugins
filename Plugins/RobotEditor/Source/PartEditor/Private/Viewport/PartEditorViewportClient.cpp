@@ -335,6 +335,10 @@ void FPartEditorViewportClient::ZoomCamera(float ZoomAmount) {
     Invalidate();
 }
 
+
+// DRAWING AND WIDGETS
+
+
 /*
 This is a custom drawing override function so that we can draw our own little things ontop. This allows us to draw Anchors, Collision Points and even custom boxes around that for preview.
 We can extend this to draw more in the future, or we can re-use this later on in a different plugin or feature to draw some other things with similar logic.
@@ -441,17 +445,19 @@ void FPartEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInter
     }
 }
 
+/*
+We can actually change which widget draws depending on a specific input / UI element toggled or object selected.
+In our case, we only care about whether anchor or collision poinst are selected. If so, we just simply return WM_Translate.
+WM_Translate is the typical Move gizmo.
+
+Otherwise, we want our gizmo to disappear, and therefore return WM_None.
+*/
 UE::Widget::EWidgetMode FPartEditorViewportClient::GetWidgetMode() const {
-    if (m_SelectedType == EPartSelectionType::Anchor) {
-        if (m_SelectedIndex != INDEX_NONE && m_CurrentInspectedObject.IsValid()) {
-            return UE::Widget::WM_Translate;
-        }
-    } else if (m_SelectedType == EPartSelectionType::CollisionPoint) {
+    if (m_SelectedType == EPartSelectionType::Anchor || m_SelectedType == EPartSelectionType::CollisionPoint) {
         if (m_SelectedIndex != INDEX_NONE && m_CurrentInspectedObject.IsValid()) {
             return UE::Widget::WM_Translate;
         }
     }
-
     return UE::Widget::WM_None;
 }
 
@@ -497,12 +503,6 @@ bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLis
     UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get());
     if (!ActivePart) return false;
 
-    if (!ActivePart->HasAnyFlags(RF_Transactional)) {
-        ActivePart->SetFlags(RF_Transactional);
-    }
-
-    FScopedTransaction Transaction(LOCTEXT("Move Anchor or Collision Point", "Edit internal part properties."));
-
     bool bHandled = false;
 
     switch(m_SelectedType) {
@@ -520,7 +520,7 @@ bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLis
                 FVector CurrentPos = ActivePart->CollisionPoints[m_SelectedIndex];
                 FVector NewPos = CurrentPos + Drag;
 
-                FSnappingUtils::SnapPointToGrid(NewPos, FVector(c_GridSize));
+                FSnappingUtils::SnapPointToGrid(NewPos, FVector(c_GridSnap));
                 Drag = NewPos - CurrentPos;
 
                 ActivePart->CollisionPoints[m_SelectedIndex] = NewPos;
@@ -544,22 +544,85 @@ bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLis
     return false;
 }
 
+/*
+Our transactions need to be tracked within this overriden function in order to track our dragging inputs.
+If we were to call this inside of the widget move function, each transaction would be a snapshot of many positions within the movement of the point.
+In doing it when the tracking begins and ends, we create a larger scoped transaction that ends the transaction only at the end of the entire movement.
+(Or when the user releases the button that began dragging.)
+*/
+void FPartEditorViewportClient::TrackingStarted(const FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge) {
+    FEditorViewportClient::TrackingStarted(InInputState, bIsDraggingWidget, bNudge);
+
+    if (bIsDraggingWidget && !m_ScopedDragTransaction.IsValid()) {
+        UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get());
+        if (ActivePart) {
+            if (!ActivePart->HasAnyFlags(RF_Transactional)) {
+                ActivePart->SetFlags(RF_Transactional);
+            }
+
+            /*
+            While we could return a single transaction message of "Edited Properties," I believe swapping it here depending on which property was specifically edited: Anchor vs Collision Point, gives greater feedback to the end-user and so this extra little bit of code is absoultely fine to add.
+            */
+            switch(m_SelectedType) {
+                case EPartSelectionType::Anchor: {
+                    m_ScopedDragTransaction = MakeUnique<FScopedTransaction>(LOCTEXT("EditPartProperties", "Edit Anchor Position."));
+                    break;
+                }
+                case EPartSelectionType::CollisionPoint: {
+                    m_ScopedDragTransaction = MakeUnique<FScopedTransaction>(LOCTEXT("EditPartProperties", "Edit Collision Point."));
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            ActivePart->Modify();
+        }
+    }
+}
+
+void FPartEditorViewportClient::TrackingStopped() {
+    FEditorViewportClient::TrackingStopped();
+    if (m_ScopedDragTransaction.IsValid()) {
+        m_ScopedDragTransaction.Reset();
+    }
+}
+
+
+// SAVING ASSETS
+
+
 void FPartEditorViewportClient::SaveActiveAsset() {
     if (!m_CurrentInspectedObject.IsValid()) return;
 
     UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get());
     if (!ActivePart) return;
 
+    /*
+    Firstly, we get the package of the object that we're editing.
+    We then perform a little magic on our object's name, this removes all spaces and replaces them with _'s.
+    */
     UPackage* CurrentPackage = ActivePart->GetPackage();
     FString CurrentName = ActivePart->PartName;
     CurrentName = CurrentName.Replace(TEXT(" "), TEXT("_"));
 
+    /*
+    If there's a cheeky user who thinks that they can just remove the name and get around our unsaved logic check, I reset it back to UNNAMED and force them to give it a name through an if later.
+    */
     if (CurrentName.IsEmpty() || CurrentName.Len() == 0) {
         CurrentName = TEXT("UNNAMED");
     }
 
+    /*
+    We update the part name to the space-replaced current_name.
+    */
     ActivePart->PartName = CurrentName;
 
+    /*
+    If our package already exists, was not created transiently by our editor, we can save it.
+    This includes packages that have the inner name of UNNAMED, as they could've been created through the content-browser instead.
+    We do not automatically handle renaming files through our save system, that's for the end-user to manage.
+    */
     if (CurrentPackage != GetTransientPackage()) {
         TArray<UPackage*> PackagesToSave;
         PackagesToSave.Add(CurrentPackage);
@@ -568,87 +631,99 @@ void FPartEditorViewportClient::SaveActiveAsset() {
         ActivePart->MarkPackageDirty();
 
         UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
-    } else if (CurrentName.Equals(TEXT("UNNAMED"), ESearchCase::IgnoreCase)) {
+    }
+    /*
+    We force the user to give the file a name through a save dialog, IF the file is transient and the name field was left as UNNAMED.
+    This includes UNNAMED in any sort of case.
+    */
+    else if (CurrentName.Equals(TEXT("UNNAMED"), ESearchCase::IgnoreCase)) {
         FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 
+        /*
+        We can create this neat little save dialog through Unreal Engine's built in SaveAssetDialog set-up. Which is actually really neat!
+        I don't know why I didn't expect this to already be set-up for us, but they use it themselves in an innumerable amount of places. Having it be a useful re-usable dialog only makes sense.
+        I should take notes with some of my utility functions in here! I have a few I could add to some slate drawing utils...
+        */
         FSaveAssetDialogConfig SaveDialogConfig;
         SaveDialogConfig.DialogTitleOverride = INVTEXT("Save new Asset");
         SaveDialogConfig.DefaultPath = TEXT("/RobotEditor/Data");
         SaveDialogConfig.DefaultAssetName = TEXT("Unnamed");
         SaveDialogConfig.AssetClassNames.Add(UPDAPart::StaticClass()->GetClassPathName());
 
+        /*
+        There are some event delegates that are constructed that we can attach to, so we may as-well create some lambda functions in our body here.
+        The first one just saves it where requested, ChosenPackagePath, and does so as a new asset.
+        */
         FOnObjectPathChosenForSave OnSavePressed = FOnObjectPathChosenForSave::CreateLambda([this, ActivePart](const FString& ChosenPackagePath) {
-            FString TargetFolderPackagePath = FPaths::GetPath(ChosenPackagePath);
             FString CleanAssetName = FPaths::GetBaseFilename(ChosenPackagePath);
 
             ActivePart->Rename(*CleanAssetName, ActivePart->GetOuter());
 
-            FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-            UPDAPart* NewSavedAsset = Cast<UPDAPart>(AssetToolsModule.Get().CreateAsset(
-                CleanAssetName,
-                TargetFolderPackagePath,
-                UPDAPart::StaticClass(),
-                nullptr
-            ));
-
-            if (NewSavedAsset) {
-                NewSavedAsset->Object = ActivePart->Object;
-                NewSavedAsset->Anchors = ActivePart->Anchors;
-                NewSavedAsset->PartName = CleanAssetName;
-
-                NewSavedAsset->MarkPackageDirty();
-                NewSavedAsset->GetPackage()->MarkPackageDirty();
-
-                TArray<UPackage*> PackagesToSave;
-                PackagesToSave.Add(NewSavedAsset->GetPackage());
-
-                UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
-
-                SetInspectedObject(NewSavedAsset);
-            }
+            SaveNewAsset(ActivePart, ChosenPackagePath, *CleanAssetName);
         });
 
+        /*
+        There isn't really anything that we need to do when the user cancels, so we'll just close the dialog and move on with our day.
+        By constructing the asset dialog!
+        */
         FOnAssetDialogCancelled OnCancelPressed = FOnAssetDialogCancelled::CreateLambda([]() {
-            UE_LOG(LogTemp, Warning, TEXT("Save action cancelled."));
         });
 
         ContentBrowserModule.Get().CreateSaveAssetDialog(SaveDialogConfig, OnSavePressed, OnCancelPressed);
-    } else if (CurrentPackage == GetTransientPackage()) {
+    }
+    /*
+    In our final case, the package the user is saving is transient but the user has given it a name. We can just save this directly within our plugin's content directory.
+    In this case it's: `/RobotEditor/Data/`
+    A lot of the logic done here is similar to the logic done in the lambda above. We give the location, we give create the asset and we save it in the same way.
+    */
+    else if (CurrentPackage == GetTransientPackage()) {
         FString TargetFolderPackagePath = TEXT("/RobotEditor/Data");
-
-        FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
-        FString UniquePackagePath;
-        FString UniqueAssetName;
-
-        AssetToolsModule.Get().CreateUniqueAssetName(TargetFolderPackagePath + TEXT("/") + CurrentName, TEXT(""), UniquePackagePath, UniqueAssetName);
-
-        UPDAPart* NewSavedAsset = Cast<UPDAPart>(AssetToolsModule.Get().CreateAsset(
-            UniqueAssetName,
-            TargetFolderPackagePath,
-            UPDAPart::StaticClass(),
-            nullptr
-        ));
-
-        if (NewSavedAsset) {
-            NewSavedAsset->Object = ActivePart->Object;
-            NewSavedAsset->Anchors = ActivePart->Anchors;
-            NewSavedAsset->PartName = ActivePart->PartName;
-
-            NewSavedAsset->MarkPackageDirty();
-            NewSavedAsset->GetPackage()->MarkPackageDirty();
-
-            TArray<UPackage*> PackagesToSave;
-            PackagesToSave.Add(NewSavedAsset->GetPackage());
-
-            UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
-
-            SetInspectedObject(NewSavedAsset);
-        }
+        SaveNewAsset(ActivePart, TargetFolderPackagePath, CurrentName);
     }
 
     if (SPartContentBrowser::m_Instance.IsValid()) {
         SPartContentBrowser::m_Instance.Pin()->ScanPluginDirectory();
     }
 }
+
+void FPartEditorViewportClient::SaveNewAsset(UPDAPart* ActivePart, const FString& ChosenPackagePath, const FString& CurrentName) {
+    FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+    FString UniquePackagePath;
+    FString UniqueAssetName;
+
+    AssetToolsModule.Get().CreateUniqueAssetName(ChosenPackagePath + TEXT("/") + CurrentName, TEXT(""), UniquePackagePath, UniqueAssetName);
+    /*
+    Using the asset tools module, we need to create a new asset of our static class type of UPDAPart.
+    We need to give it a name, a path and the class.
+    We could give it a factory, but we don't have one, Unreal Engine already has a DataAsset factory built in.
+    In-fact, it has one built in for anything that extends UObject, really.
+    */
+    UPDAPart* NewSavedAsset = Cast<UPDAPart>(AssetToolsModule.Get().CreateAsset(
+        UniqueAssetName,
+        ChosenPackagePath,
+        UPDAPart::StaticClass(),
+        nullptr
+    ));
+
+    /*
+    If our save is successful, then we do a little bit of logic here to load everything and make sure it's ready to edit.
+    */
+    if (NewSavedAsset) {
+        NewSavedAsset->Object = ActivePart->Object;
+        NewSavedAsset->Anchors = ActivePart->Anchors;
+        NewSavedAsset->PartName = UniqueAssetName;
+
+        NewSavedAsset->MarkPackageDirty();
+        NewSavedAsset->GetPackage()->MarkPackageDirty();
+
+        TArray<UPackage*> PackagesToSave;
+        PackagesToSave.Add(NewSavedAsset->GetPackage());
+
+        UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+
+        SetInspectedObject(NewSavedAsset);
+    }
+}
+
 
 #undef LOCTEXT_NAMESPACE
