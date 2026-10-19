@@ -18,6 +18,7 @@ public:
 UCLASS(BlueprintType, Blueprintable)
 class ROBOTEDITORRUNTIME_API UPartDataContainer : public UObject {
 GENERATED_BODY()
+public:
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Save Data")
     FPartData PartData;
 };
