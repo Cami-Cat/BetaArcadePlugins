@@ -20,6 +20,8 @@
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
 #include "UObject/Package.h"
+#include "Components/SkyLightComponent.h"
+#include "Engine/SkyLight.h"
 #include "Interfaces/IMainFrameModule.h"
 #include "UnrealWidget.h"
 
@@ -40,6 +42,17 @@ FPartEditorViewportClient::FPartEditorViewportClient(FPreviewScene& InPreviewSce
         UpdateCameraPositionFromOrbit();
         EngineShowFlags.SetEyeAdaptation(false);
         Invalidate();
+}
+
+FSceneView* FPartEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily, const int32 StereoViewIndex) {
+    FSceneView* View = FEditorViewportClient::CalcSceneView(ViewFamily, StereoViewIndex);
+    if (!m_bChangeBackgroundColour) return View;
+
+    if (View) {
+        View->BackgroundColor = m_BackgroundColour;
+    }
+
+    return View;
 }
 
 void FPartEditorViewportClient::SetDetailsView(TSharedPtr<IDetailsView> InDetailsView) {

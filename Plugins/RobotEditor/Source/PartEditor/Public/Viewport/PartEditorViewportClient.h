@@ -38,6 +38,7 @@ public:
 
     virtual bool CanSetWidgetMode(UE::Widget::EWidgetMode NewMode) const override { return true; }
     virtual bool InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) override;
+    virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const int32 StereoViewIndex = INDEX_NONE) override;
 
     FOnSelectedObjectChanged OnSelectedObjectChanged;
 
@@ -46,6 +47,8 @@ private:
     FVector m_OrbitTargetPoint;
     float m_CameraOrbitRadius;
     bool m_bIsOrbiting;
+    bool m_bChangeBackgroundColour = false;
+    FLinearColor m_BackgroundColour = FLinearColor(0.12f, 0.14f, 0.18f, 1.0f);
     bool m_bDrawAnchors = true;
     bool m_bDrawCollision = true;
     int32 m_SelectedIndex = -1;

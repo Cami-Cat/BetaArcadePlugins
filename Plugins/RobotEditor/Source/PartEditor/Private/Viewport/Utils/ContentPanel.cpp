@@ -29,12 +29,18 @@ void SPartThumbnailTitle::Construct(const FArguments& InArgs, const FAssetData& 
 
     TSharedPtr<FAssetThumbnailPool> GlobalPool = UThumbnailManager::Get().GetSharedThumbnailPool();
     TSharedRef<SWidget> ThumbnailWidget = SNew(STextBlock).Text(INVTEXT("Data"));
+
     UObject* Outer = m_AssetDataRecord.GetAsset();
     UPDAPart* OuterCast = Cast<UPDAPart>(Outer);
+
     if (!OuterCast) return;
+
     UObject* Inner = OuterCast->Object;
+
     if (Inner) {
         m_AssetThumbnailInstance = MakeShareable(new FAssetThumbnail(Inner, THUMBNAIL_SIZE, THUMBNAIL_SIZE, GlobalPool));
+    } else {
+        m_AssetThumbnailInstance = MakeShareable(new FAssetThumbnail(OuterCast, THUMBNAIL_SIZE, THUMBNAIL_SIZE, GlobalPool));
     }
 
     if (m_AssetThumbnailInstance.IsValid()) {
