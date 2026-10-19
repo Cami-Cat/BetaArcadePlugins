@@ -8,6 +8,8 @@
 #include "Viewport/Utils/ContentPanel.h"
 #include "DrawDebugHelpers.h"
 #include "Data/PartDat.h"
+#include "MaterialDomain.h"
+#include "Materials/MaterialRenderProxy.h"
 #include "MouseDeltaTracker.h"
 #include "Framework/Application/SlateApplication.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -50,20 +52,40 @@ FPartEditorViewportClient::~FPartEditorViewportClient() {
 }
 
 void FPartEditorViewportClient::OnInspectorPropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent) {
-    UE_LOG(LogTemp, Log, TEXT("Property on edited object has changed, updating and re-rendering."))
     if (!m_CurrentInspectedObject.IsValid()) return;
-
     UObject* ActiveObject = m_CurrentInspectedObject.Get();
     SetInspectedObject(ActiveObject);
 }
 
 void FPartEditorViewportClient::Tick(float DeltaSeconds) {
     FEditorViewportClient::Tick(DeltaSeconds);
-
     PreviewScene->GetWorld()->Tick(LEVELTICK_All, DeltaSeconds);
 }
 
 bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
+    /*
+    Toggle drawing collision. Also ensure that we deselect our current selected collision point and set our selection type to none. Just below we'll also toggle drawing Anchors in the exact same way. You could consider it some copied code. Deselecting everything could easily be turned into it's own function.
+
+    TODO : Turn Deselection into its own function.
+    */
+    if (EventArgs.Key == EKeys::C && EventArgs.Event == IE_Pressed && EventArgs.Viewport->KeyState(EKeys::LeftAlt)) {
+        m_bDrawCollision = !m_bDrawCollision;
+        SetSelectedIndex(INDEX_NONE);
+        SetPartSelectionType(EPartSelectionType::None);
+        Invalidate();
+        return true;
+    }
+    if (EventArgs.Key == EKeys::A && EventArgs.Event == IE_Pressed && EventArgs.Viewport->KeyState(EKeys::LeftAlt)) {
+        m_bDrawAnchors = !m_bDrawAnchors;
+        SetSelectedIndex(INDEX_NONE);
+        SetPartSelectionType(EPartSelectionType::None);
+        Invalidate();
+        return true;
+    }
+
+    /*
+    Handle zooming inputs, whether we should zoom - or + based on scroll inputs.
+    */
     if (EventArgs.Key == EKeys::MouseScrollUp && EventArgs.Event == IE_Pressed) {
         ZoomCamera(-c_ZoomAmount);
         return true;
@@ -73,6 +95,10 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
         return true;
     }
 
+    /*
+    Handle orbit logic by locking our mouse to the viewport and toggling m_bIsOrbiting so our InputAxis function can correctly update the camera position.
+    Unlock the mouse on releasing our orbit button.
+    */
     if (EventArgs.Key == EKeys::RightMouseButton) {
         if (EventArgs.Event == IE_Pressed) {
             m_bIsOrbiting = true;
@@ -91,6 +117,10 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
                 int32 MouseX = Viewport->GetMouseX();
                 int32 MouseY = Viewport->GetMouseY();
 
+                /*
+                Firstly, we create a hit result. This hit result just checks for whether we've intersected with a UI Gizmo. In the case that we have, we ensure that this gizmo is selected.
+                */
+
                 HHitProxy* HitResult = Viewport->GetHitProxy(MouseX, MouseY);
                 if (HitResult && HitResult->IsA(HWidgetAxis::StaticGetType())) {
                     HWidgetAxis* WidgetAxis = (HWidgetAxis*)HitResult;
@@ -98,7 +128,17 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
                     return FEditorViewportClient::InputKey(EventArgs);
                 }
 
+                /*
+                If there was no selection, we can simply tell the viewport that there is no gizmo to edit.
+                */
+
                 SetCurrentWidgetAxis(EAxisList::None);
+
+                /*
+                We simulate our clicks by using a raycast with a large depth multiplier. This allows us to select objects far away.
+                We don't specifically need any of our objects to be on this ray, in our later calculations we try to actually get the closest point *to* the ray
+                rather than an exact click. This gives the user some lee-way and makes our selection logic slightly easier too.
+                */
 
                 FViewportCursorLocation CursorLocation = GetCursorWorldLocationFromMousePos();
                 FVector RayOrigin = CursorLocation.GetOrigin();
@@ -107,26 +147,58 @@ bool FPartEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
 
                 if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
                     float BestHitDistance = FLT_MAX;
-                    int32 SelectedAnchorIndex = INDEX_NONE;
+                    int32 SelectedIndex = INDEX_NONE;
+                    EPartSelectionType SelectedType = EPartSelectionType::None;
 
-                    for (int32 i = 0; i < ActivePart->Anchors.Num(); i++) {
-                        FVector PointPos = ActivePart->Anchors[i].Position;
+                    /*
+                    We only check for our anchors if the user is drawing anchors, this is the same for the check for whether we should draw collision below.
+                    This check works quite simply, we just check whichever point is closest to a line from the camera. If it is closer than the current BestHitDistance and is within an acceptable radius
+                    (10.0f by default,) then that is the currently chosen index.
 
-                        FVector ClosestPointOnRay = FMath::ClosestPointOnSegment(PointPos, RayOrigin, RayEnd);
-                        float DistanceToRay = FVector::Dist(PointPos, ClosestPointOnRay);
+                    We need to update our m_SelectedType to our relevant EPartSelectionType
+                    And our selection index, which tells our draw loop and gizmo tool which specific index from our array we want to draw and edit
+                    */
 
-                        if (DistanceToRay < 25.0f &&  DistanceToRay < BestHitDistance) {
-                            BestHitDistance = DistanceToRay;
-                            SelectedAnchorIndex = i;
+                    if (m_bDrawAnchors) {
+                        for (int32 i = 0; i < ActivePart->Anchors.Num(); i++) {
+                            FVector PointPos = ActivePart->Anchors[i].Position;
+                            // Handy dandy little FMath function for finding the closest point on a line.
+                            FVector ClosestPointOnRay = FMath::ClosestPointOnSegment(PointPos, RayOrigin, RayEnd);
+                            float DistanceToRay = FVector::Dist(PointPos, ClosestPointOnRay);
+
+                            if (DistanceToRay < 10.0f &&  DistanceToRay < BestHitDistance) {
+                                BestHitDistance = DistanceToRay;
+                                SelectedIndex = i;
+                                SelectedType = EPartSelectionType::Anchor;
+                            }
                         }
                     }
 
-                    m_SelectedAnchorIndex = SelectedAnchorIndex;
+                    if (m_bDrawCollision) {
+                        for (int32 i = 0; i < ActivePart->CollisionPoints.Num(); i++) {
+                            FVector PointPos = ActivePart->CollisionPoints[i];
+                            FVector ClosestPointOnRay = FMath::ClosestPointOnSegment(PointPos, RayOrigin, RayEnd);
+                            float DistanceToRay = FVector::Dist(PointPos, ClosestPointOnRay);
+
+                            if (DistanceToRay < 10.0f && DistanceToRay < BestHitDistance) {
+                                BestHitDistance = DistanceToRay;
+                                SelectedIndex = i;
+                                SelectedType = EPartSelectionType::CollisionPoint;
+                            }
+                        }
+                    }
+
+                    m_SelectedIndex = SelectedIndex;
+                    m_SelectedType = SelectedType;
                     Invalidate();
                 }
             }
             return true;
         }
+        /*
+        On release, if we have a widget - we need to deselect our widget.
+        Otherwise, we can just simply return false and return true to force handle any inputs.
+        */
         else if (EventArgs.Event == IE_Released) {
             if (GetCurrentWidgetAxis() != EAxisList::None) {
                 SetCurrentWidgetAxis(EAxisList::None);
@@ -151,7 +223,6 @@ bool FPartEditorViewportClient::InputAxis(const FInputKeyEventArgs& EventArgs) {
     if (ActiveAxis != EAxisList::None) {
         return FEditorViewportClient::InputAxis(EventArgs);
     }
-
 
     if (m_bIsOrbiting) {
         FRotator CurrentRotation = GetViewRotation();
@@ -265,40 +336,128 @@ void FPartEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInter
 
     if (!PDI) return;
 
+    /*
+    If we have an active part, we want to be able to draw our specific data. Anchors and Collision Points are not themselves objects, and therefore are not drawn by the Engine.
+    We also want the end-user to be able to toggle whether they should draw Anchors and/or Collision Points. Those toggles are handled within InputKey.
+
+    While FPrimitiveDrawInterface has many useful functions, it is also a function parameter itself. In the case of drawing Boxes:
+    (DrawBox)
+    (DrawWireBox)
+    PDI is an input rather than the caller, despite the fact that PDI itself has DrawPoint.
+
+    This is an odd quirk of UnrealEngine.
+    */
+
     if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
-        for (int32 i = 0; i < ActivePart->Anchors.Num(); i++) {
-            FVector AnchorLocation = ActivePart->Anchors[i].Position;
 
-            FColor RenderColor = c_UnselectedAnchorColor;
-            float CorePointSize = c_AnchorSize;
+        if (m_bDrawAnchors) {
+            for (int32 i = 0; i < ActivePart->Anchors.Num(); i++) {
+                FVector AnchorLocation = ActivePart->Anchors[i].Position;
 
-            if (i == m_SelectedAnchorIndex) {
-                RenderColor = c_SelectedAnchorColor;
-                CorePointSize = c_SelectedAnchorSize;
+                /*
+                TODO : Change FColor to FLinearColor on these properties.
+                */
+                FColor RenderColor = c_UnselectedAnchorColor;
+                float CorePointSize = c_AnchorSize;
+
+                if (m_SelectedType == EPartSelectionType::Anchor) {
+                    if (i == m_SelectedIndex) {
+                        RenderColor = c_SelectedAnchorColor;
+                        CorePointSize = c_SelectedAnchorSize;
+                    }
+                }
+
+                PDI->DrawPoint(AnchorLocation, FLinearColor(RenderColor), CorePointSize, SDPG_World);
+            }
+        }
+
+        if (m_bDrawCollision) {
+
+            for (int32 i = 0; i < ActivePart->CollisionPoints.Num(); i++) {
+                FVector CollisionLocation = ActivePart->CollisionPoints[i];
+
+                FLinearColor RenderColor = c_CollisionPoint;
+                float CorePointSize = c_AnchorSize;
+
+                if (m_SelectedType == EPartSelectionType::CollisionPoint) {
+                    if (i == m_SelectedIndex) {
+                        RenderColor = c_SelectedCollisionPoint;
+                        CorePointSize = c_AnchorSize;
+                    }
+                }
+
+                PDI->DrawPoint(CollisionLocation, RenderColor, CorePointSize, SDPG_World);
             }
 
-            PDI->DrawPoint(AnchorLocation, FLinearColor(RenderColor), CorePointSize, SDPG_World);
+            /*
+            We want to draw our box, which means we need to find the minimum and maximum extent of our points. We have 6 points in total since we're working with a square.
+            We just need to find the minimum of all of the X, Y and Z axis through a loop. This has O(n) complexity.
+            */
 
-            if (i == m_SelectedAnchorIndex) {
-                FVector ZeroProjection = FVector::ZeroVector;
-                PDI->DrawLine(AnchorLocation, ZeroProjection, FLinearColor(RenderColor), SDPG_World, 0.2f);
+            FVector MinBounds = ActivePart->CollisionPoints[0];
+            FVector MaxBounds = ActivePart->CollisionPoints[0];
+
+            for (int32 i = 0; i < ActivePart->CollisionPoints.Num(); i++) {
+                MinBounds.X = FMath::Min(MinBounds.X, ActivePart->CollisionPoints[i].X);
+                MinBounds.Y = FMath::Min(MinBounds.Y, ActivePart->CollisionPoints[i].Y);
+                MinBounds.Z = FMath::Min(MinBounds.Z, ActivePart->CollisionPoints[i].Z);
+
+                MaxBounds.X = FMath::Max(MaxBounds.X, ActivePart->CollisionPoints[i].X);
+                MaxBounds.Y = FMath::Max(MaxBounds.Y, ActivePart->CollisionPoints[i].Y);
+                MaxBounds.Z = FMath::Max(MaxBounds.Z, ActivePart->CollisionPoints[i].Z);
             }
+
+            /*
+            We can construct an FBox. FBox is also usable in Blueprints, though it is instead called "Box" in blueprints, as they remove the prefix.
+            This can be later saved in the UPDAPart* when editing, or created as a function call like GetBoundingBox()
+
+            TODO : Make above function ref or save FBox in the part itself.
+            */
+
+            FBox BoundingBox(MinBounds, MaxBounds);
+
+            /*
+            We want a transparent texture for our box, while it would be great if we could simply use our c_BoundingBoxInnards colour, we have to use a material proxy, in this case a:
+            FColoredMaterialRenderProxy. But, all we have to do is feed in our colour and that sets the material's albedo to our requested transparent c_BoundingBoxInnards.
+            */
+
+            FColoredMaterialRenderProxy* SafeProxy = new FColoredMaterialRenderProxy(
+                GEngine->GeomMaterial->GetRenderProxy(),
+                c_BoundingBoxInnards
+            );
+
+            DrawBox(PDI, FTransform(BoundingBox.GetCenter()).ToMatrixWithScale(), BoundingBox.GetExtent(), SafeProxy, SDPG_World);
+            DrawWireBox(PDI, BoundingBox, FLinearColor::Red, SDPG_World, c_BoundingBoxWireThickness, 0.0f, false);
         }
     }
 }
 
 UE::Widget::EWidgetMode FPartEditorViewportClient::GetWidgetMode() const {
-    if (m_SelectedAnchorIndex != INDEX_NONE && m_CurrentInspectedObject.IsValid()) {
-        return UE::Widget::WM_Translate;
+    if (m_SelectedType == EPartSelectionType::Anchor) {
+        if (m_SelectedIndex != INDEX_NONE && m_CurrentInspectedObject.IsValid()) {
+            return UE::Widget::WM_Translate;
+        }
+    } else if (m_SelectedType == EPartSelectionType::CollisionPoint) {
+        if (m_SelectedIndex != INDEX_NONE && m_CurrentInspectedObject.IsValid()) {
+            return UE::Widget::WM_Translate;
+        }
     }
 
     return UE::Widget::WM_None;
 }
 
 FVector FPartEditorViewportClient::GetWidgetLocation() const {
-    if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
-        if (ActivePart->Anchors.IsValidIndex(m_SelectedAnchorIndex)) {
-            return ActivePart->Anchors[m_SelectedAnchorIndex].Position;
+    if (m_SelectedType == EPartSelectionType::Anchor) {
+        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+            if (ActivePart->Anchors.IsValidIndex(m_SelectedIndex)) {
+                return ActivePart->Anchors[m_SelectedIndex].Position;
+            }
+        }
+    } else if (m_SelectedType == EPartSelectionType::CollisionPoint) {
+        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+            if (ActivePart->CollisionPoints.IsValidIndex(m_SelectedIndex)) {
+                return ActivePart->CollisionPoints[m_SelectedIndex];
+            }
         }
     }
     return FVector::ZeroVector;
@@ -308,20 +467,36 @@ bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLis
     if (InAxis == EAxisList::None || Drag.IsZero()) {
         return false;
     }
+    if (m_SelectedType == EPartSelectionType::Anchor) {
+        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+            if (ActivePart->Anchors.IsValidIndex(m_SelectedIndex)) {
+                ActivePart->Anchors[m_SelectedIndex].Position += Drag;
+                ActivePart->MarkPackageDirty();
 
-    if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
-        if (ActivePart->Anchors.IsValidIndex(m_SelectedAnchorIndex)) {
-            ActivePart->Anchors[m_SelectedAnchorIndex].Position += Drag;
-            ActivePart->MarkPackageDirty();
+                if (m_AssociatedDetailsView.IsValid()) {
+                    m_AssociatedDetailsView->SetObject(ActivePart, true);
+                }
 
-            if (m_AssociatedDetailsView.IsValid()) {
-                m_AssociatedDetailsView->SetObject(ActivePart, true);
+                Invalidate();
+                return true;
             }
+        }
+    } else if (m_SelectedType == EPartSelectionType::CollisionPoint) {
+        if (UPDAPart* ActivePart = Cast<UPDAPart>(m_CurrentInspectedObject.Get())) {
+            if (ActivePart->CollisionPoints.IsValidIndex(m_SelectedIndex)) {
+                ActivePart->CollisionPoints[m_SelectedIndex] += Drag;
+                ActivePart->MarkPackageDirty();
 
-            Invalidate();
-            return true;
+                if (m_AssociatedDetailsView.IsValid()) {
+                    m_AssociatedDetailsView->SetObject(ActivePart, true);
+                }
+
+                Invalidate();
+                return true;
+            }
         }
     }
+
     return false;
 }
 

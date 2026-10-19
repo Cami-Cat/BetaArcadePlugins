@@ -15,6 +15,7 @@ class UPDAPart : public UPrimaryDataAsset {
 GENERATED_BODY()
 
 public:
+    UPDAPart();
     UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Part Dat")
     FString PartName = TEXT("UNNAMED");
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Part Dat")
@@ -29,8 +30,10 @@ public:
     FTooltip Tooltip;
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Part Dat")
     FWeapon WeaponTooltip;
-    UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Part Data")
+    UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Part Dat")
     TArray<FAnchor> Anchors;
+    UPROPERTY()
+    TArray<FVector> CollisionPoints;
 
 public:
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Health")

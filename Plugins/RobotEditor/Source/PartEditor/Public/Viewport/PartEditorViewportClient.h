@@ -7,6 +7,12 @@
 
 DECLARE_MULTICAST_DELEGATE(FOnSelectedObjectChanged);
 
+enum class EPartSelectionType : uint8 {
+    None,
+    Anchor,
+    CollisionPoint
+};
+
 class FPartEditorViewportClient : public FEditorViewportClient {
 public:
     FPartEditorViewportClient(FPreviewScene& InPreviewScene);
@@ -22,9 +28,10 @@ public:
     TSharedPtr<IDetailsView> GetDetailsView() { return m_AssociatedDetailsView; }
     void SetInspectedObject(UObject* NewPartObject);
     TWeakObjectPtr<UObject> GetInspectedObject() { return m_CurrentInspectedObject; }
+    void SetPartSelectionType(EPartSelectionType Type) { m_SelectedType = Type; }
 
-    void SetSelectedAnchorIndex(int32 NewIndex) { m_SelectedAnchorIndex = NewIndex; }
-    int32 GetSelectedAnchorIndex() const { return m_SelectedAnchorIndex; }
+    void SetSelectedIndex(int32 NewIndex) { m_SelectedIndex = NewIndex; }
+    int32 GetSelectedIndex() const { return m_SelectedIndex; }
 
     virtual bool CanSetWidgetMode(UE::Widget::EWidgetMode NewMode) const override { return true; }
     virtual UE::Widget::EWidgetMode GetWidgetMode() const override;
@@ -37,6 +44,8 @@ private:
     FVector m_OrbitTargetPoint;
     float m_CameraOrbitRadius;
     bool m_bIsOrbiting;
+    bool m_bDrawAnchors = true;
+    bool m_bDrawCollision = true;
 
     TSharedPtr<IDetailsView> m_AssociatedDetailsView;
     TWeakObjectPtr<UObject> m_CurrentInspectedObject;
@@ -44,10 +53,16 @@ private:
 
     const FColor c_UnselectedAnchorColor = FColor(255, 255, 255);
     const FColor c_SelectedAnchorColor = FColor(0, 255, 64);
+    const FLinearColor c_CollisionPoint = FLinearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    const FLinearColor c_SelectedCollisionPoint = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    const FLinearColor c_BoundingBoxWire = FLinearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    const FLinearColor c_BoundingBoxInnards = FLinearColor(1.0f, 0.0f, 0.0f, 0.2f);
+    const int c_BoundingBoxWireThickness = 1;
     const float c_AnchorSize = 12.0f;
     const float c_SelectedAnchorSize = c_AnchorSize * 1.5;
 
-    int32 m_SelectedAnchorIndex = -1;
+    int32 m_SelectedIndex = -1;
+    EPartSelectionType m_SelectedType = EPartSelectionType::None;
 
     AStaticMeshActor* CreateStaticMeshComponent(UStaticMesh* InObject, FActorSpawnParameters& SpawnParams);
     AActor* CreateActorComponent(UBlueprint* InObject, FActorSpawnParameters& SpawnParams);

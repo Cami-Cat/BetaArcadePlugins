@@ -1,5 +1,24 @@
 #include "Data/PartDat.h"
 
+UPDAPart::UPDAPart()
+    : Super() {
+
+    int Sides = 6;
+
+    TArray<FVector> InitialPoints = {
+        FVector(100, 0, 0),
+        FVector(-100, 0, 0),
+        FVector(0, 100, 0),
+        FVector(0, -100, 0),
+        FVector(0, 0, 100),
+        FVector(0, 0, -100)
+    };
+
+    if (CollisionPoints.IsEmpty()) {
+        CollisionPoints = InitialPoints;
+    }
+}
+
 float UPDAPart::GetHealth() {
     return Health;
 }
