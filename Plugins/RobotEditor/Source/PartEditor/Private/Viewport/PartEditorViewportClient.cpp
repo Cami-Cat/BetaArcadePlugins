@@ -420,27 +420,7 @@ void FPartEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInter
             We just need to find the minimum of all of the X, Y and Z axis through a loop. This has O(n) complexity.
             */
 
-            FVector MinBounds = ActivePart->CollisionPoints[0];
-            FVector MaxBounds = ActivePart->CollisionPoints[0];
-
-            for (int32 i = 0; i < ActivePart->CollisionPoints.Num(); i++) {
-                MinBounds.X = FMath::Min(MinBounds.X, ActivePart->CollisionPoints[i].X);
-                MinBounds.Y = FMath::Min(MinBounds.Y, ActivePart->CollisionPoints[i].Y);
-                MinBounds.Z = FMath::Min(MinBounds.Z, ActivePart->CollisionPoints[i].Z);
-
-                MaxBounds.X = FMath::Max(MaxBounds.X, ActivePart->CollisionPoints[i].X);
-                MaxBounds.Y = FMath::Max(MaxBounds.Y, ActivePart->CollisionPoints[i].Y);
-                MaxBounds.Z = FMath::Max(MaxBounds.Z, ActivePart->CollisionPoints[i].Z);
-            }
-
-            /*
-            We can construct an FBox. FBox is also usable in Blueprints, though it is instead called "Box" in blueprints, as they remove the prefix.
-            This can be later saved in the UPDAPart* when editing, or created as a function call like GetBoundingBox()
-
-            TODO : Make above function ref or save FBox in the part itself.
-            */
-
-            FBox BoundingBox(MinBounds, MaxBounds);
+            FBox BoundingBox = ActivePart->GetBoundingBox();
 
             /*
             We want a transparent texture for our box, while it would be great if we could simply use our c_BoundingBoxInnards colour, we have to use a material proxy, in this case a:

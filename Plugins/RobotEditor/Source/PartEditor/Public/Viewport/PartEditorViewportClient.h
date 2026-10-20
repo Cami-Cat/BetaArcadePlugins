@@ -13,17 +13,22 @@ enum class EPartSelectionType : uint8 {
     CollisionPoint
 };
 
+/*
+These delegates are going to be used within our class to offload function calls to the delegate system. This should allow other set-ups to listen for what we're doing in the client as-well,
+such as the content browser, the anchors panel and the details view.
+*/
+
 DECLARE_MULTICAST_DELEGATE(FOnDeselection);
 DECLARE_MULTICAST_DELEGATE(FOnSelectedObjectChanged);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectedObjectSaved, UPDAPart*);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSelectedPointChanged, int, EPartSelectionType);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnTrackingBegin, const FString&);
-DECLARE_MULTICAST_DELEGATE(FOnTrackingEnd);
 
 class FPartEditorViewportClient : public FEditorViewportClient {
 public:
     FPartEditorViewportClient(FPreviewScene& InPreviewScene);
     virtual ~FPartEditorViewportClient() override;
+
+// Override base class functionality
 
     void SaveActiveAsset();
     virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
@@ -31,20 +36,31 @@ public:
     virtual bool InputAxis(const FInputKeyEventArgs& EventArgs) override;
     virtual void Tick(float DeltaSeconds) override;
 
+// External Setters
+
     void SetDetailsView(TSharedPtr<IDetailsView> InDetailsView);
     void SetInspectedObject(UObject* NewPartObject);
     void SetPartSelectionType(EPartSelectionType Type) { m_SelectedType = Type; }
     void SetSelectedIndex(int32 NewIndex) { m_SelectedIndex = NewIndex; }
 
+// External Getters
+
     TSharedPtr<IDetailsView> GetDetailsView() { return m_AssociatedDetailsView; }
     TWeakObjectPtr<UObject> GetInspectedObject() { return m_CurrentInspectedObject; }
     int32 GetSelectedIndex() const { return m_SelectedIndex; }
+
+// Widgets
+
     virtual UE::Widget::EWidgetMode GetWidgetMode() const override;
     virtual FVector GetWidgetLocation() const override;
-
     virtual bool CanSetWidgetMode(UE::Widget::EWidgetMode NewMode) const override { return true; }
     virtual bool InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) override;
+
+// Alter our scene without using an FAdvancedPreviewScene
+
     virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const int32 StereoViewIndex = INDEX_NONE) override;
+
+// Delegates
 
     FOnDeselection OnDeslection;
     FOnSelectedObjectChanged OnSelectedObjectChanged;

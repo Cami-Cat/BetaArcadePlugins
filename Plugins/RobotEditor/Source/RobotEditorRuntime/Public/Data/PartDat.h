@@ -11,7 +11,7 @@ class UNiagaraSystem;
 class USoundBase;
 
 UCLASS(BlueprintType)
-class UPDAPart : public UPrimaryDataAsset {
+class ROBOTEDITORRUNTIME_API UPDAPart : public UPrimaryDataAsset {
 GENERATED_BODY()
 
 public:
@@ -40,6 +40,8 @@ public:
     float GetHealth();
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Health")
     float SetHealth(float NewHealth);
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Collision")
+    FBox GetBoundingBox();
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Visuals")
     UNiagaraSystem* GetDeathParticle();

@@ -1,4 +1,5 @@
 #include "Data/PartDat.h"
+#include "Components/PrimitiveComponent.h"
 
 UPDAPart::UPDAPart()
     : Super() {
@@ -17,6 +18,29 @@ UPDAPart::UPDAPart()
     if (CollisionPoints.IsEmpty()) {
         CollisionPoints = InitialPoints;
     }
+}
+
+FBox UPDAPart::GetBoundingBox() {
+    FVector MinBounds = CollisionPoints[0];
+    FVector MaxBounds = CollisionPoints[0];
+
+    for (int32 i = 0; i < CollisionPoints.Num(); i++) {
+        MinBounds.X = FMath::Min(MinBounds.X, CollisionPoints[i].X);
+        MinBounds.Y = FMath::Min(MinBounds.Y, CollisionPoints[i].Y);
+        MinBounds.Z = FMath::Min(MinBounds.Z, CollisionPoints[i].Z);
+
+        MaxBounds.X = FMath::Max(MaxBounds.X, CollisionPoints[i].X);
+        MaxBounds.Y = FMath::Max(MaxBounds.Y, CollisionPoints[i].Y);
+        MaxBounds.Z = FMath::Max(MaxBounds.Z, CollisionPoints[i].Z);
+    }
+
+    /*
+    We can construct an FBox. FBox is also usable in Blueprints, though it is instead called "Box" in blueprints, as they remove the prefix.
+    This can be later saved in the UPDAPart* when editing, or created as a function call like GetBoundingBox()
+
+    TODO : Make above function ref or save FBox in the part itself.
+    */
+    return FBox(MinBounds, MaxBounds);
 }
 
 float UPDAPart::GetHealth() {
