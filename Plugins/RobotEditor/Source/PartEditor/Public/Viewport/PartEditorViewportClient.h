@@ -5,8 +5,6 @@
 #include "IDetailsView.h"
 #include "PreviewScene.h"
 
-DECLARE_MULTICAST_DELEGATE(FOnSelectedObjectChanged);
-
 class UPDAPart;
 
 enum class EPartSelectionType : uint8 {
@@ -14,6 +12,13 @@ enum class EPartSelectionType : uint8 {
     Anchor,
     CollisionPoint
 };
+
+DECLARE_MULTICAST_DELEGATE(FOnDeselection);
+DECLARE_MULTICAST_DELEGATE(FOnSelectedObjectChanged);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectedObjectSaved, UPDAPart*);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSelectedPointChanged, int, EPartSelectionType);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnTrackingBegin, const FString&);
+DECLARE_MULTICAST_DELEGATE(FOnTrackingEnd);
 
 class FPartEditorViewportClient : public FEditorViewportClient {
 public:
@@ -30,6 +35,7 @@ public:
     void SetInspectedObject(UObject* NewPartObject);
     void SetPartSelectionType(EPartSelectionType Type) { m_SelectedType = Type; }
     void SetSelectedIndex(int32 NewIndex) { m_SelectedIndex = NewIndex; }
+
     TSharedPtr<IDetailsView> GetDetailsView() { return m_AssociatedDetailsView; }
     TWeakObjectPtr<UObject> GetInspectedObject() { return m_CurrentInspectedObject; }
     int32 GetSelectedIndex() const { return m_SelectedIndex; }
@@ -40,13 +46,17 @@ public:
     virtual bool InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) override;
     virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const int32 StereoViewIndex = INDEX_NONE) override;
 
+    FOnDeselection OnDeslection;
     FOnSelectedObjectChanged OnSelectedObjectChanged;
+    FOnSelectedObjectSaved OnSelectedObjectSaved;
+    FOnSelectedPointChanged OnSelectedPointChanged;
 
 private:
 
     FVector m_OrbitTargetPoint;
     float m_CameraOrbitRadius;
-    bool m_bIsOrbiting;
+    bool m_bIsOrbiting = false;
+    bool m_bIsClickingGizmo = false;
     bool m_bChangeBackgroundColour = false;
     FLinearColor m_BackgroundColour = FLinearColor(0.12f, 0.14f, 0.18f, 1.0f);
     bool m_bDrawAnchors = true;
