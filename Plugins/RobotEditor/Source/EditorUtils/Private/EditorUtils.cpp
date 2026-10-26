@@ -15,4 +15,4 @@ void FEditorUtils::ShutdownModule()
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FEditorUtils, RobotEditorRuntime)
+IMPLEMENT_MODULE(FEditorUtils, EditorUtils)
