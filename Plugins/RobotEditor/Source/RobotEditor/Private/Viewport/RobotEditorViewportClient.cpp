@@ -2,7 +2,7 @@
 #include "Data/PartDat.h"
 
 FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewScene)
-    : FEditorViewportClient(nullptr, &InPreviewScene) {
+    : FEditorUtilsViewportClient(InPreviewScene) {
         return;
 }
 
