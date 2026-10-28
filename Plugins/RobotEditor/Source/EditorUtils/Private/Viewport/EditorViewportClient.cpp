@@ -164,32 +164,13 @@ AActor* FEditorUtilsViewportClient::CreateActorComponent(UBlueprint* InObject, F
     return nullptr;
 }
 
-TTuple<FVector, FVector> FEditorUtilsViewportClient::CastRayFromCameraToMouse() const {
-    TTuple<FVector, FVector> RayInfo(0.0f, 0.0f);
-    return RayInfo;
+TTuple<FVector, FVector> FEditorUtilsViewportClient::CastRayFromCameraToMouse() {
+    FViewportCursorLocation CursorLocation = GetCursorWorldLocationFromMousePos();
+    FVector RayStart = CursorLocation.GetOrigin();
+    FVector RayDirection = CursorLocation.GetDirection();
+    FVector RayEnd = RayStart + (RayDirection * 10000.0f);
+
+    return MakeTuple(RayStart, RayEnd);
 }
-
-int32 GetIndexOfClosestPoint(const TArray<FVector>& Points, const TTuple<FVector, FVector>& RayInfo) {
-    const auto& [RayStart, RayEnd] = RayInfo;
-
-    int32 ClosestIndex = INDEX_NONE;
-    double ClosestDistance = MAX_flt;
-
-    for (int i = 0; i < Points.Num(); i++) {
-        const FVector& CurrentPoint = Points[i];
-
-        FVector ClosestPointOnRay = FMath::ClosestPointOnSegment(CurrentPoint, RayStart, RayEnd);
-        float DistanceToRay = FVector::Dist(CurrentPoint, ClosestPointOnRay);
-
-        if (DistanceToRay < ClosestDistance) {
-            ClosestDistance = DistanceToRay;
-            ClosestIndex = i;
-        }
-    }
-
-    return ClosestIndex;
-}
-
-
 
 #undef LOCTEXT_NAMESPACE

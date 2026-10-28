@@ -89,5 +89,6 @@ private:
     void TrackingStopped() override;
     void OnInspectorPropertyChanged(const FPropertyChangedEvent& PropertyChangedEvent);
     void SaveNewAsset(UPDAPart* ActivePart, const FString& ChosenPackagePath, const FString& CurrentName);
+    TTuple<int32, bool, float> GetIndexOfClosestPoint(const TArray<FVector>& Points, const TTuple<FVector, FVector>& RayInfo, float CurrentClosestPoint = MAX_flt);
 
 };

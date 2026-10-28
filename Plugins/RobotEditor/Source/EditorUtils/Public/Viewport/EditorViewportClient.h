@@ -48,7 +48,10 @@ private:
 protected:
 
     AActor* CreateActorComponent(UBlueprint* InObject, FActorSpawnParameters& SpawnParams);
-    TTuple<FVector, FVector> CastRayFromCameraToMouse() const;
-    int32 GetIndexOfClosestPoint(const TArray<FVector>& Points, const TTuple<FVector, FVector>& RayInfo);
+    TTuple<FVector, FVector> CastRayFromCameraToMouse();
 
+private:
+
+    FVector GetLocationFromPoint(const FVector& Point) const;
+    FVector GetLocationFromPoint(const FAnchor& Point) const;
 };
