@@ -53,5 +53,4 @@ protected:
 private:
 
     FVector GetLocationFromPoint(const FVector& Point) const;
-    FVector GetLocationFromPoint(const FAnchor& Point) const;
 };

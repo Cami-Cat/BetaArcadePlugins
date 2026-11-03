@@ -8,11 +8,11 @@
 
 typedef TSharedPtr<FAssetData> FPartAssetEntryPtr;
 
-class SPartThumbnailTitle : public SCompoundWidget {
+class SPartThumbnailTile : public SCompoundWidget {
 public:
     const int THUMBNAIL_SIZE = 128;
 
-    SLATE_BEGIN_ARGS(SPartThumbnailTitle) {}
+    SLATE_BEGIN_ARGS(SPartThumbnailTile) {}
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SPartEditorViewport> InViewportWidget);

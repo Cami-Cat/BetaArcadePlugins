@@ -16,7 +16,7 @@
 
 TWeakPtr<SPartContentBrowser> SPartContentBrowser::m_Instance = nullptr;
 
-void SPartThumbnailTitle::Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SPartEditorViewport> InViewportWidget) {
+void SPartThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SPartEditorViewport> InViewportWidget) {
     m_AssetDataRecord = InAssetData;
     m_AssociatedViewport = InViewportWidget;
 
@@ -90,7 +90,7 @@ void SPartThumbnailTitle::Construct(const FArguments& InArgs, const FAssetData& 
     ];
 }
 
-FReply SPartThumbnailTitle::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) {
+FReply SPartThumbnailTile::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) {
     if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && m_AssociatedViewport.IsValid()) {
         UObject* FullyLoadedAsset = m_AssetDataRecord.GetAsset();
 
@@ -232,7 +232,7 @@ void SPartContentBrowser::ScanPluginDirectory() {
     AssetRegistryModule.Get().GetAssets(DataFolderFilter, ExtractedAssetRecords);
 
     for (const FAssetData& AssetRecord : ExtractedAssetRecords) {
-        TSharedRef<SPartThumbnailTitle> GeneratedTileCard = SNew(SPartThumbnailTitle, AssetRecord, m_AssociatedViewport.Pin());
+        TSharedRef<SPartThumbnailTile> GeneratedTileCard = SNew(SPartThumbnailTile, AssetRecord, m_AssociatedViewport.Pin());
         m_TileGridContainer->AddSlot()
             .Padding(FMargin(4.0f))
             [
