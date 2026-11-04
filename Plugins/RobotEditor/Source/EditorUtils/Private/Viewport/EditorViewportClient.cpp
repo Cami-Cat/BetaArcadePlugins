@@ -4,6 +4,7 @@
 #include "Engine/Blueprint.h"
 #include "Components/PrimitiveComponent.h"
 #include "GeometryCollection/GeometryCollectionComponent.h"
+#include "Viewport/Utils/PartContentBrowser.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Interfaces/IMainFrameModule.h"
 
@@ -171,6 +172,10 @@ TTuple<FVector, FVector> FEditorUtilsViewportClient::CastRayFromCameraToMouse() 
     FVector RayEnd = RayStart + (RayDirection * 10000.0f);
 
     return MakeTuple(RayStart, RayEnd);
+}
+
+void FEditorUtilsViewportClient::ConnectTile(SThumbnailTile* Tile) {
+    Tile->OnThumbnailTriggered.AddSP(this, &FEditorUtilsViewportClient::OnThumbnailTriggered);
 }
 
 #undef LOCTEXT_NAMESPACE

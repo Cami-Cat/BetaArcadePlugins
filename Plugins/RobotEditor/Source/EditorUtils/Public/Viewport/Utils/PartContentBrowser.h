@@ -14,38 +14,40 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnThumbnailTriggered, UPDAPart*);
 
 typedef TSharedPtr<FAssetData> FPartAssetEntryPtr;
 
-class SThumbnailTile : public SCompoundWidget {
+class EDITORUTILS_API SThumbnailTile : public SCompoundWidget {
 public:
     const int THUMBNAIL_SIZE = 128;
 
     SLATE_BEGIN_ARGS(SThumbnailTile) {}
     SLATE_END_ARGS()
 
-    void Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SEditorViewport> InViewportWidget);
+    void Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SEditorUtilsViewport> InViewportWidget);
+    virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override;
 
     FOnThumbnailTriggered OnThumbnailTriggered;
 
-private:
+protected:
 
     FAssetData m_AssetDataRecord;
-    TWeakPtr<class SEditorViewport> m_AssociatedViewport;
+    TWeakPtr<class SEditorUtilsViewport> m_AssociatedViewport;
     TSharedPtr<FAssetThumbnail> m_AssetThumbnailInstance;
 
 };
 
-class SContentBrowser : public SCompoundWidget {
+class EDITORUTILS_API SContentBrowser : public SCompoundWidget {
 public:
     SLATE_BEGIN_ARGS(SContentBrowser) {}
     SLATE_END_ARGS()
 
-    void Construct(const FArguments& InArgs, TSharedPtr<class SEditorViewport> InViewportWidget);
+    void Construct(const FArguments& InArgs, TSharedPtr<class SEditorUtilsViewport> InViewportWidget);
     void ScanPluginDirectory();
 
     static TWeakPtr<SContentBrowser> m_Instance;
-private:
+
+protected:
 
     TSharedRef<SWidget> OnGenerateTileWidget(FPartAssetEntryPtr Item);
-    TWeakPtr<class SEditorViewport> m_AssociatedViewport;
+    TWeakPtr<class SEditorUtilsViewport> m_AssociatedViewport;
     TSharedPtr<SWrapBox> m_TileGridContainer;
 };
 

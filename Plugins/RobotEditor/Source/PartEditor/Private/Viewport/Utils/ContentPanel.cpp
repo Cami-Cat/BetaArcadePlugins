@@ -15,9 +15,7 @@
 #include "Viewport/EditorViewportClient.h"
 #include "Data/PartDat.h"
 
-TWeakPtr<SPartContentBrowser> SPartContentBrowser::m_Instance = nullptr;
-
-void SPartThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SPartEditorViewport> InViewportWidget) {
+void SPartThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SEditorUtilsViewport> InViewportWidget) {
     m_AssetDataRecord = InAssetData;
     m_AssociatedViewport = InViewportWidget;
 
@@ -108,48 +106,16 @@ FReply SPartThumbnailTile::OnMouseButtonDoubleClick(const FGeometry& InMyGeometr
     return FReply::Unhandled();
 }
 
-void SPartContentBrowser::Construct(const FArguments& InArgs, TSharedPtr<SPartEditorViewport> InViewportWidget) {
-    m_AssociatedViewport = InViewportWidget;
-    m_Instance = SharedThis(this);
-
-    ChildSlot
-    [
-        SNew(SVerticalBox)
-
-        + SVerticalBox::Slot()
-        .AutoHeight()
-        .Padding(FMargin(6.0f, 4.0f))
-        [
-            SNew(STextBlock)
-            .Text(INVTEXT("Parts Asset Registry"))
-            .Font(FAppStyle::Get().GetFontStyle("NormalFontBold"))
-        ]
-
-        + SVerticalBox::Slot()
-        .FillHeight(1.0f)
-        .Padding(FMargin(4.0f))
-        .HAlign(HAlign_Fill)
-        [
-            SNew(SScrollBox)
-            .Orientation(Orient_Vertical)
-            + SScrollBox::Slot()
-            [
-                SAssignNew(m_TileGridContainer, SWrapBox)
-                .UseAllottedSize(true)
-            ]
-        ]
-    ];
-    ScanPluginDirectory();
+void SPartContentBrowser::Construct(const FArguments& InArgs, TSharedPtr<SEditorUtilsViewport> InViewportWidget) {
+    SContentBrowser::FArguments Args;
+    SContentBrowser::Construct(Args, InViewportWidget);
 }
 
 
 void SPartContentBrowser::ScanPluginDirectory() {
-    if (!m_TileGridContainer.IsValid()) return;
+    SContentBrowser::ScanPluginDirectory();
 
-    m_TileGridContainer->ClearChildren();
-
-    TWeakPtr<SPartEditorViewport> WeakViewport = m_AssociatedViewport;
-
+    TWeakPtr<SEditorUtilsViewport> WeakViewport = m_AssociatedViewport;
     m_TileGridContainer->AddSlot()
         .Padding(FMargin(4.0f))
         [
@@ -162,12 +128,12 @@ void SPartContentBrowser::ScanPluginDirectory() {
                 .HAlign(HAlign_Center)
                 .VAlign(VAlign_Center)
                 .OnClicked_Lambda([WeakViewport]() -> FReply {
-                    TSharedPtr<SPartEditorViewport> ViewportPin = WeakViewport.Pin();
-                    if (!ViewportPin.IsValid()) return FReply::Handled();
+                    TSharedPtr<SPartEditorViewport> CastViewport = StaticCastSharedPtr<SPartEditorViewport>(WeakViewport.Pin());
+                    if (!CastViewport.IsValid()) return FReply::Handled();
 
                     UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
                     if (NewBlankPart) {
-                        ViewportPin->SetEditingObject(NewBlankPart);
+                        CastViewport->SetEditingObject(NewBlankPart);
                     }
 
                     return FReply::Handled();
@@ -179,23 +145,4 @@ void SPartContentBrowser::ScanPluginDirectory() {
                 ]
             ]
         ];
-
-    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-
-    FARFilter DataFolderFilter;
-    DataFolderFilter.PackagePaths.Add(TEXT("/RobotEditor/Data"));
-    DataFolderFilter.ClassPaths.Add(UPDAPart::StaticClass()->GetClassPathName());
-    DataFolderFilter.bRecursivePaths = true;
-
-    TArray<FAssetData> ExtractedAssetRecords;
-    AssetRegistryModule.Get().GetAssets(DataFolderFilter, ExtractedAssetRecords);
-
-    for (const FAssetData& AssetRecord : ExtractedAssetRecords) {
-        TSharedRef<SPartThumbnailTile> GeneratedTileCard = SNew(SPartThumbnailTile, AssetRecord, m_AssociatedViewport.Pin());
-        m_TileGridContainer->AddSlot()
-            .Padding(FMargin(4.0f))
-            [
-                GeneratedTileCard
-            ];
-    }
 }

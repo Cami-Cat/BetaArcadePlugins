@@ -12,14 +12,9 @@ public:
     SLATE_BEGIN_ARGS(SPartThumbnailTile) {}
     SLATE_END_ARGS()
 
-    void Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SPartEditorViewport> InViewportWidget);
+    void Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SEditorUtilsViewport> InViewportWidget);
     virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override;
 
-private:
-    FAssetData m_AssetDataRecord;
-    TWeakPtr<class SPartEditorViewport> m_AssociatedViewport;
-
-    TSharedPtr<FAssetThumbnail> m_AssetThumbnailInstance;
 };
 
 class SPartContentBrowser : public SContentBrowser {
@@ -27,13 +22,7 @@ public:
     SLATE_BEGIN_ARGS(SPartContentBrowser) {}
     SLATE_END_ARGS()
 
-    void Construct(const FArguments& InArgs, TSharedPtr<class SPartEditorViewport> InViewportWidget);
+    void Construct(const FArguments& InArgs, TSharedPtr<class SEditorUtilsViewport> InViewportWidget);
     void ScanPluginDirectory();
 
-    static TWeakPtr<SPartContentBrowser> m_Instance;
-private:
-    TSharedRef<SWidget> OnGenerateTileWidget(FPartAssetEntryPtr Item);
-
-    TWeakPtr<class SPartEditorViewport> m_AssociatedViewport;
-    TSharedPtr<SWrapBox> m_TileGridContainer;
 };

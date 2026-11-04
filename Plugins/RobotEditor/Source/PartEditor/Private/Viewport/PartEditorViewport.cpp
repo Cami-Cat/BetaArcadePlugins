@@ -6,8 +6,8 @@
 #include "Framework/Commands/UICommandInfo.h"
 
 void SPartEditorViewport::Construct(const FArguments& InArgs) {
-    m_PreviewScene = MakeUnique<FPreviewScene>();
-    SEditorViewport::Construct(SEditorViewport::FArguments());
+    SEditorUtilsViewport::FArguments Arguments;
+    SEditorUtilsViewport::Construct(Arguments);
 }
 
 SPartEditorViewport::~SPartEditorViewport() {
@@ -28,10 +28,6 @@ TSharedRef<FEditorViewportClient> SPartEditorViewport::MakeEditorViewportClient(
     m_ViewportClient->bDrawAxes = true;
 
     return m_ViewportClient.ToSharedRef();
-}
-
-TSharedPtr<SWidget> SPartEditorViewport::BuildViewportToolbar() {
-    return SNew(SViewportToolBar);
 }
 
 void SPartEditorViewport::SetEditingObject(UObject* NewObject) {
@@ -65,9 +61,10 @@ FReply SPartEditorViewport::OnDrop(const FGeometry& MyGeometry, const FDragDropE
 
 FReply SPartEditorViewport::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) {
     if (InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::S) {
-        TSharedPtr<FPartEditorViewportClient> PartClient = GetViewportClient();
-        if (PartClient.IsValid()) {
-            PartClient->SaveActiveAsset();
+        TSharedPtr<FEditorUtilsViewportClient> PartClient = GetViewportClient();
+        TSharedPtr<FPartEditorViewportClient> CastClient = StaticCastSharedPtr<FPartEditorViewportClient>(PartClient);
+        if (CastClient.IsValid()) {
+            CastClient->SaveActiveAsset();
             return FReply::Handled();
         }
     }

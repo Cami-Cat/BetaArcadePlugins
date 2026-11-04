@@ -6,6 +6,7 @@
 #include "IDetailsView.h"
 #include "PreviewScene.h"
 
+class SThumbnailTile;
 class UPDAPart;
 
 class EDITORUTILS_API FEditorUtilsViewportClient : public FEditorViewportClient, public TSharedFromThis<FEditorUtilsViewportClient> {
@@ -25,6 +26,7 @@ public:
 
     virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const int32 StereoViewIndex = INDEX_NONE) override;
     virtual void OnThumbnailTriggered(UPDAPart* Part) {};
+    virtual void ConnectTile(SThumbnailTile* Tile);
 
 private:
 
