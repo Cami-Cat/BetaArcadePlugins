@@ -59,6 +59,9 @@ public:
     FOnSelectedObjectSaved OnSelectedObjectSaved;
     FOnSelectedPointChanged OnSelectedPointChanged;
 
+    virtual void OnThumbnailTriggered(UPDAPart* Part) override;
+
+
 private:
 
     bool m_bIsClickingGizmo = false;

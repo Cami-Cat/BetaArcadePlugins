@@ -6,7 +6,9 @@
 #include "IDetailsView.h"
 #include "PreviewScene.h"
 
-class EDITORUTILS_API FEditorUtilsViewportClient : public FEditorViewportClient {
+class UPDAPart;
+
+class EDITORUTILS_API FEditorUtilsViewportClient : public FEditorViewportClient, public TSharedFromThis<FEditorUtilsViewportClient> {
 public:
     FEditorUtilsViewportClient(FPreviewScene& InPreviewScene);
     virtual ~FEditorUtilsViewportClient() override;
@@ -22,6 +24,7 @@ public:
     TSharedPtr<IDetailsView> GetDetailsView() { return m_AssociatedDetailsView; }
 
     virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const int32 StereoViewIndex = INDEX_NONE) override;
+    virtual void OnThumbnailTriggered(UPDAPart* Part) {};
 
 private:
 

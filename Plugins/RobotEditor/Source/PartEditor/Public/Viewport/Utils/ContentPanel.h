@@ -1,14 +1,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Widgets/SCompoundWidget.h"
-#include "Widgets/Views/STileView.h"
-#include "Widgets/Layout/SWrapBox.h"
-#include "AssetRegistry/AssetData.h"
+#include "Viewport/Utils/PartContentBrowser.h"
 
 typedef TSharedPtr<FAssetData> FPartAssetEntryPtr;
 
-class SPartThumbnailTile : public SCompoundWidget {
+class SPartThumbnailTile : public SThumbnailTile {
 public:
     const int THUMBNAIL_SIZE = 128;
 
@@ -25,7 +22,7 @@ private:
     TSharedPtr<FAssetThumbnail> m_AssetThumbnailInstance;
 };
 
-class SPartContentBrowser : public SCompoundWidget {
+class SPartContentBrowser : public SContentBrowser {
 public:
     SLATE_BEGIN_ARGS(SPartContentBrowser) {}
     SLATE_END_ARGS()

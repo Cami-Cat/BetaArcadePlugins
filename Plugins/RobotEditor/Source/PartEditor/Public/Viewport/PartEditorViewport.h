@@ -13,7 +13,7 @@ public:
     void Construct(const FArguments& InArgs);
     virtual ~SPartEditorViewport() override;
 
-    TSharedPtr<FPartEditorViewportClient> GetPartClient() const { return m_ViewportClient; }
+    TSharedPtr<FPartEditorViewportClient> GetViewportClient() const { return m_ViewportClient; }
 
     void SetEditingObject(UObject* NewObject);
 

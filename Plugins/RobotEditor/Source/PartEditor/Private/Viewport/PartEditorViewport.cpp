@@ -65,7 +65,7 @@ FReply SPartEditorViewport::OnDrop(const FGeometry& MyGeometry, const FDragDropE
 
 FReply SPartEditorViewport::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) {
     if (InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::S) {
-        TSharedPtr<FPartEditorViewportClient> PartClient = GetPartClient();
+        TSharedPtr<FPartEditorViewportClient> PartClient = GetViewportClient();
         if (PartClient.IsValid()) {
             PartClient->SaveActiveAsset();
             return FReply::Handled();

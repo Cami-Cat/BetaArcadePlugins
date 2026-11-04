@@ -12,6 +12,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SScrollBox.h"
+#include "Viewport/EditorViewportClient.h"
 #include "Data/PartDat.h"
 
 TWeakPtr<SPartContentBrowser> SPartContentBrowser::m_Instance = nullptr;
@@ -19,6 +20,11 @@ TWeakPtr<SPartContentBrowser> SPartContentBrowser::m_Instance = nullptr;
 void SPartThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SPartEditorViewport> InViewportWidget) {
     m_AssetDataRecord = InAssetData;
     m_AssociatedViewport = InViewportWidget;
+
+    TSharedPtr<FEditorUtilsViewportClient> ViewportClient = m_AssociatedViewport.Pin()->GetViewportClient();
+    if (ViewportClient.IsValid()) {
+        OnThumbnailTriggered.AddSP(ViewportClient.Get(), &FEditorUtilsViewportClient::OnThumbnailTriggered);
+    }
 
     FString AssetNameStr = m_AssetDataRecord.AssetName.ToString();
 
@@ -91,12 +97,12 @@ void SPartThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& I
 }
 
 FReply SPartThumbnailTile::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) {
-    if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && m_AssociatedViewport.IsValid()) {
+    if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) {
         UObject* FullyLoadedAsset = m_AssetDataRecord.GetAsset();
 
-        if (FullyLoadedAsset) {
-            m_AssociatedViewport.Pin()->SetEditingObject(FullyLoadedAsset);
-            return FReply::Handled();
+        UPDAPart* CastPart = Cast<UPDAPart>(FullyLoadedAsset);
+        if (CastPart) {
+            OnThumbnailTriggered.Broadcast(CastPart);
         }
     }
     return FReply::Unhandled();
@@ -130,28 +136,6 @@ void SPartContentBrowser::Construct(const FArguments& InArgs, TSharedPtr<SPartEd
             [
                 SAssignNew(m_TileGridContainer, SWrapBox)
                 .UseAllottedSize(true)
-                + SWrapBox::Slot()
-                .Padding(FMargin(4.0f))
-                [
-                    SNew(SBox)
-                    .WidthOverride(96.0f)
-                    .HeightOverride(96.0f)
-                    [
-                        SNew(SButton)
-                        .ButtonStyle(FAppStyle::Get(), "SimpleButton")
-                        .HAlign(HAlign_Center)
-                        .VAlign(VAlign_Center)
-                        .OnClicked_Lambda([InViewportWidget]() -> FReply {
-                            if (InViewportWidget.IsValid() && InViewportWidget->GetPartClient().IsValid()) {
-                                UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
-                                if (NewBlankPart) {
-                                    InViewportWidget->SetEditingObject(NewBlankPart);
-                                }
-                            }
-                            return FReply::Handled();
-                        })
-                    ]
-                ]
             ]
         ]
     ];
@@ -180,31 +164,6 @@ void SPartContentBrowser::ScanPluginDirectory() {
                 .OnClicked_Lambda([WeakViewport]() -> FReply {
                     TSharedPtr<SPartEditorViewport> ViewportPin = WeakViewport.Pin();
                     if (!ViewportPin.IsValid()) return FReply::Handled();
-                    TSharedPtr<FPartEditorViewportClient> ViewportClient = ViewportPin->GetPartClient();
-                    if (!ViewportClient.IsValid()) return FReply::Handled();
-                    TObjectPtr<UPDAPart> CurrentEditedPart = Cast<UPDAPart>(ViewportClient->GetInspectedObject());
-                    bool bShouldShowDialog = false;
-                    if (CurrentEditedPart) {
-                        UPackage* AssetPackage = CurrentEditedPart->GetPackage();
-                        if (AssetPackage && AssetPackage->IsDirty()) {
-                            bShouldShowDialog = true;
-                        }
-                    }
-
-                    if (bShouldShowDialog) {
-                        FText DialogText = INVTEXT("You may have unsaved data, do you wish to create a new part?");
-                        FText DialogTitle = INVTEXT("Create new part");
-
-                        EAppReturnType::Type UserChoice = FMessageDialog::Open(
-                            EAppMsgType::YesNo,
-                            DialogText,
-                            DialogTitle
-                        );
-
-                        if (UserChoice != EAppReturnType::Yes){
-                                return FReply::Handled();
-                        }
-                    }
 
                     UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
                     if (NewBlankPart) {

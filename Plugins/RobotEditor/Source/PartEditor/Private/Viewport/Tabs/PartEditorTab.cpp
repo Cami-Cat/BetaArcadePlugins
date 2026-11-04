@@ -21,7 +21,7 @@ TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) 
 
     TSharedRef<IDetailsView> PartsDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
     TSharedRef<SPartEditorViewport> ViewportWidget = SNew(SPartEditorViewport);
-    TSharedPtr<FPartEditorViewportClient> ClientPtr = ViewportWidget->GetPartClient();
+    TSharedPtr<FPartEditorViewportClient> ClientPtr = ViewportWidget->GetViewportClient();
     if (ClientPtr.IsValid()) {
         ClientPtr->SetDetailsView(PartsDetailsView);
     }

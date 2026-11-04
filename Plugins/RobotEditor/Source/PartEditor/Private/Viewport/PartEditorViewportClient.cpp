@@ -1,4 +1,5 @@
 #include "Viewport/PartEditorViewportClient.h"
+#include "Viewport/PartEditorViewport.h"
 #include "Engine/CollisionProfile.h"
 #include "Viewport/Utils/ContentPanel.h"
 #include "DrawDebugHelpers.h"
@@ -174,6 +175,21 @@ TTuple<int32, bool, float> FPartEditorViewportClient::GetIndexOfClosestPoint(con
 
 void FPartEditorViewportClient::SetInspectedObject(UObject* NewPartObject) {
     if (!NewPartObject) return;
+
+    if (m_CurrentInspectedObject.Pin() && m_CurrentInspectedObject.Pin()->GetPackage() && m_CurrentInspectedObject.Pin()->GetPackage()->IsDirty()) {
+        FText DialogText = LOCTEXT("UnsavedChangesBody", "You may have unsaved data, do you wish to create a new part?");
+        FText DialogTitle = LOCTEXT("UnsavedChangesTitle", "UnsavedChanges");
+
+        EAppReturnType::Type UserChoice = FMessageDialog::Open(
+            EAppMsgType::YesNo,
+            DialogText,
+            DialogTitle
+        );
+
+        if (UserChoice != EAppReturnType::Yes){
+                return;
+        }
+    }
 
     m_CurrentInspectedObject = NewPartObject;
 
@@ -572,6 +588,12 @@ void FPartEditorViewportClient::SaveNewAsset(UPDAPart* ActivePart, const FString
 
         SetInspectedObject(NewSavedAsset);
     }
+}
+
+void FPartEditorViewportClient::OnThumbnailTriggered(UPDAPart* Part) {
+    SetInspectedObject(Part);
+    SetSelectedIndex(INDEX_NONE);
+    return;
 }
 
 

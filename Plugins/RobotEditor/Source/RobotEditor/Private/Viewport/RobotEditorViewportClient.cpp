@@ -22,8 +22,8 @@ void FRobotEditorViewportClient::Tick(float DeltaSeconds) {
     FCollisionQueryParams Params;
     Params.AddIgnoredActor(m_PreviewActor);
 
-    bool bHit = World->LineTraceSingleByChannel()(HitResult, RayStart, RayEnd, ECC_Visibility, Params);
-    if (bhit) {
+    bool bHit = World->LineTraceSingleByChannel(HitResult, RayStart, RayEnd, ECC_Visibility, Params);
+    if (bHit) {
         AActor* HitActor = HitResult.GetActor();
 
         if (HitActor) {
