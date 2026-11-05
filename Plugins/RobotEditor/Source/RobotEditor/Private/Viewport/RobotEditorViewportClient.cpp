@@ -87,7 +87,9 @@ void FRobotEditorViewportClient::SetSelectedPart(UPDAPart* PartData) {
     TSet<UActorComponent*> Components = NewActor->GetComponents();
     for (auto& Component : Components) { 
         UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Component);
-        StaticMeshComponent->Material(0, SafeProxy);
+        if (StaticMeshComponent) {
+            StaticMeshComponent->Material(0, SafeProxy);
+        }
     }
 }
 
