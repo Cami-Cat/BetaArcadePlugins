@@ -28,6 +28,10 @@ public:
     AActor* GetActor();
     FVector GetActorLocation(AActor* Actor);
 
+    virtual void OnThumbnailTriggered(UPDAPart* Part) override;
+    virtual void ConnectTileSingleClick(SThumbnailTile* Tile) override;
+    virtual void ConnectTileDoubleClick(SThumbnailTile* Tile) override;
+
 private:
 
     const FLinearColor c_PreviewColour = FLinearColor(1.0f, 0.2f, 0.2f, 0.3f);

@@ -596,5 +596,13 @@ void FPartEditorViewportClient::OnThumbnailTriggered(UPDAPart* Part) {
     return;
 }
 
+void FPartEditorViewportClient::ConnectTileSingleClick(SThumbnailTile* Tile) {
+    return;
+}
+
+void FPartEditorViewportClient::ConnectTileDoubleClick(SThumbnailTile* Tile) {
+    Tile->OnThumbnailDoubleClicked.AddSP(this, &FPartEditorViewportClient::OnThumbnailTriggered);
+}
+
 
 #undef LOCTEXT_NAMESPACE

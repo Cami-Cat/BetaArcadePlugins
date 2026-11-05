@@ -1,4 +1,5 @@
 #include "Viewport/RobotEditorViewportClient.h"
+#include "Components/StaticMeshComponent.h"
 #include "Data/PartDat.h"
 
 FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewScene)
@@ -59,7 +60,35 @@ void FRobotEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInte
 }
 
 void FRobotEditorViewportClient::SetSelectedPart(UPDAPart* PartData) {
-    return;
+    UWorld* PreviewWorld = PreviewScene->GetWorld();
+    if (!PreviewWorld) return;
+
+    if (m_PreviewActor.IsValid()) {
+        m_PreviewActor.Destroy();
+        m_PreviewActor.Reset();
+    }
+
+    AActor* NewActor = nullptr;
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    if (PartData) {
+        if (PartData->Object) {
+            NewActor = FEditorUtilsViewportClient::CreateActorComponent(PartData->Object, SpawnParams);
+            if (NewActor) { m_PreviewActor = NewActor; }
+         }
+    }
+
+    FColoredMaterialRenderProxy* SafeProxy = new FColoredMaterialRenderProxy(
+        GEngine->GeomMaterial->GetRenderProxy(),
+        c_PreviewColour;
+    );
+
+    TSet<UActorComponent*> Components = NewActor->GetComponents();
+    for (auto& Component : Components) { 
+        UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Component);
+        StaticMeshComponent->Material(0, SafeProxy);
+    }
 }
 
 void FRobotEditorViewportClient::UpdatePreviewActor() {
@@ -93,4 +122,17 @@ AActor* FRobotEditorViewportClient::GetActor() {
 
 FVector FRobotEditorViewportClient::GetActorLocation(AActor* Actor) {
     return Actor->GetActorLocation();
+}
+
+void FRobotEditorViewportClient::OnThumbnailTriggered(UPDAPart* Part) {
+    SetSelectedPart(Part);
+    return;
+}
+
+void FRobotEditorViewportClient::ConnectTileSingleClick(SThumbnailTile* Tile) {
+    Tile->OnThumbnailClicked.AddSP(this, &FRobotEditorViewportClient::OnThumbnailTriggered);
+}
+
+void FRobotEditorViewportClient::ConnectTileDoubleClick(SThumbnailTile* Tile) {
+    return;
 }

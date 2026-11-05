@@ -60,7 +60,8 @@ public:
     FOnSelectedPointChanged OnSelectedPointChanged;
 
     virtual void OnThumbnailTriggered(UPDAPart* Part) override;
-
+    virtual void ConnectTileSingleClick(SThumbnailTile* Tile) override;
+    virtual void ConnectTileDoubleClick(SThumbnailTile* Tile) override;
 
 private:
 

@@ -16,10 +16,10 @@
 
 TWeakPtr<SContentBrowser> SContentBrowser::m_Instance = nullptr;
 
-
 void SThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SEditorUtilsViewport> InViewportWidget) {
     m_AssetDataRecord = InAssetData;
     m_AssociatedViewport = InViewportWidget;
+    m_AddPlusButton = InArgs._AddPlusButton;
 
     TSharedPtr<FEditorUtilsViewportClient> ViewportClient = m_AssociatedViewport.Pin()->GetViewportClient();
     if (ViewportClient.IsValid()) {
@@ -134,15 +134,35 @@ void SContentBrowser::Construct(const FArguments& InArgs, TSharedPtr<class SEdit
 
 FReply SThumbnailTile::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) {
     if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) {
-        UObject* FullyLoadedAsset = m_AssetDataRecord.GetAsset();
-
-        UPDAPart* CastPart = Cast<UPDAPart>(FullyLoadedAsset);
-        if (CastPart) {
-            OnThumbnailTriggered.Broadcast(CastPart);
-            return FReply::Handled();
-        }
+        OnThumbnailDoubleClicked.Broadcast(GetRelatedPart());
+        return FReply::Handled();
     }
     return FReply::Unhandled();
+}
+
+FReply SThumbnailTile::OnMouseButtonDown(const FGeometry* InMyGeometry, const FPointerEvent& InMouseEvent) {
+    m_MouseButtonHeld = true;
+}
+
+FReply SThumbnailTile::OnMouseButtonUp(const FGeometry* InMyGeometry, const FPointerEvent& InMouseEvent) {
+    if (m_MouseButtonHeld) {
+        m_MouseButtonHeld = false;
+
+        if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) {
+            OnThumbnailClicked.Broadcast(GetRelatedPart());
+            return FReply::Handled();
+        }
+    return FReply::Unhandled();
+    }
+}
+
+UPDAPart* SThumbnailTile::GetRelatedPart() {
+    UPDAPart* ReturnPart = nullptr;
+    if (m_AssetDataRecord.IsValid()) {
+        UObject* FullyLoadedAsset = m_AssetDataRecord.GetAsset();
+        ReturnPart = Cast<UPDAPart>(FullyLoadedAsset);
+    }
+    return ReturnPart;
 }
 
 

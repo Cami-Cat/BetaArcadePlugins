@@ -174,8 +174,12 @@ TTuple<FVector, FVector> FEditorUtilsViewportClient::CastRayFromCameraToMouse() 
     return MakeTuple(RayStart, RayEnd);
 }
 
-void FEditorUtilsViewportClient::ConnectTile(SThumbnailTile* Tile) {
+void FEditorUtilsViewportClient::ConnectTileSingleClick(SThumbnailTile* Tile) {
     Tile->OnThumbnailTriggered.AddSP(this, &FEditorUtilsViewportClient::OnThumbnailTriggered);
+}
+
+void FEditorUtilsViewportClient::ConnectTileDoubleClick(SThumbnailTile* Tile) {
+    Tile->OnThumbnailDoubleClicked.AddSP(this, &FEditorUtilsViewportClient::OnThumbnailTriggered);
 }
 
 #undef LOCTEXT_NAMESPACE

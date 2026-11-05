@@ -10,7 +10,9 @@
 
 class UPDAPart;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnThumbnailTriggered, UPDAPart*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnThumbnailClicked, UPDAPart*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnThumbnailDoubleClicked, UPDAPart*);
+DECLARE_MULTICAST_DELEGATE(FOnAddButtonPressed);
 
 typedef TSharedPtr<FAssetData> FPartAssetEntryPtr;
 
@@ -23,8 +25,13 @@ public:
 
     void Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SEditorUtilsViewport> InViewportWidget);
     virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override;
+    virtual FReply OnMouseButtonDown(const FGeometry* InMyGeometry, const FPointerEvent& InMouseEvent) override;
+    virtual FReply OnMouseButtonUp(const FGeometry* InMyGeometry, const FPointerEvent& InMouseEvent) override;
 
-    FOnThumbnailTriggered OnThumbnailTriggered;
+    virtual UPDAPart* GetRelatedPart() const;
+
+    FOnThumbnailClicked OnThumbnailClicked;
+    FOnThumbnailDoubleClicked OnThumbnailDoubleClicked;
 
 protected:
 
@@ -32,11 +39,18 @@ protected:
     TWeakPtr<class SEditorUtilsViewport> m_AssociatedViewport;
     TSharedPtr<FAssetThumbnail> m_AssetThumbnailInstance;
 
+private:
+
+    bool m_MouseButtonHeld = false;
+
 };
 
 class EDITORUTILS_API SContentBrowser : public SCompoundWidget {
 public:
-    SLATE_BEGIN_ARGS(SContentBrowser) {}
+    SLATE_BEGIN_ARGS(SContentBrowser) 
+        : _AddPlusButton(false)
+    {}
+        SLATE_ARGUMENT(bool AddPlusButton)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs, TSharedPtr<class SEditorUtilsViewport> InViewportWidget);
@@ -44,11 +58,17 @@ public:
 
     static TWeakPtr<SContentBrowser> m_Instance;
 
+    FOnAddButtonPressed OnAddButtonPresed;
+
 protected:
 
     TSharedRef<SWidget> OnGenerateTileWidget(FPartAssetEntryPtr Item);
     TWeakPtr<class SEditorUtilsViewport> m_AssociatedViewport;
     TSharedPtr<SWrapBox> m_TileGridContainer;
+
+private:
+
+    bool m_AddPlusButton = false;
 };
 
 #endif

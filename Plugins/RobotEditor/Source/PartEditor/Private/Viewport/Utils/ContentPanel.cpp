@@ -21,7 +21,8 @@ void SPartThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& I
 
     TSharedPtr<FEditorUtilsViewportClient> ViewportClient = m_AssociatedViewport.Pin()->GetViewportClient();
     if (ViewportClient.IsValid()) {
-        OnThumbnailTriggered.AddSP(ViewportClient.Get(), &FEditorUtilsViewportClient::OnThumbnailTriggered);
+        ViewportClient.ConnectTileSingleClick(this);
+        ViewportClient.ConnectTileDoubleClick(this);
     }
 
     FString AssetNameStr = m_AssetDataRecord.AssetName.ToString();

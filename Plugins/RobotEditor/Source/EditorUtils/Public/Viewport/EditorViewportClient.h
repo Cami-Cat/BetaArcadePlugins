@@ -26,7 +26,8 @@ public:
 
     virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const int32 StereoViewIndex = INDEX_NONE) override;
     virtual void OnThumbnailTriggered(UPDAPart* Part) {};
-    virtual void ConnectTile(SThumbnailTile* Tile);
+    virtual void ConnectTileSingleClick(SThumbnailTile* Tile) = 0;
+    virtual void ConnectTileDoubleClick(SThumbnailTile* Tile) = 0;
 
 private:
 
