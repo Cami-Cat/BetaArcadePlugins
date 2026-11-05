@@ -25,10 +25,10 @@ public:
 
     void Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SEditorUtilsViewport> InViewportWidget);
     virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override;
-    virtual FReply OnMouseButtonDown(const FGeometry* InMyGeometry, const FPointerEvent& InMouseEvent) override;
-    virtual FReply OnMouseButtonUp(const FGeometry* InMyGeometry, const FPointerEvent& InMouseEvent) override;
+    virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+    virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
-    virtual UPDAPart* GetRelatedPart() const;
+    virtual UPDAPart* GetRelatedPart();
 
     FOnThumbnailClicked OnThumbnailClicked;
     FOnThumbnailDoubleClicked OnThumbnailDoubleClicked;
@@ -47,10 +47,10 @@ private:
 
 class EDITORUTILS_API SContentBrowser : public SCompoundWidget {
 public:
-    SLATE_BEGIN_ARGS(SContentBrowser) 
+    SLATE_BEGIN_ARGS(SContentBrowser)
         : _AddPlusButton(false)
     {}
-        SLATE_ARGUMENT(bool AddPlusButton)
+        SLATE_ARGUMENT(bool, AddPlusButton)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs, TSharedPtr<class SEditorUtilsViewport> InViewportWidget);
@@ -58,7 +58,7 @@ public:
 
     static TWeakPtr<SContentBrowser> m_Instance;
 
-    FOnAddButtonPressed OnAddButtonPresed;
+    FOnAddButtonPressed OnAddButtonPressed;
 
 protected:
 

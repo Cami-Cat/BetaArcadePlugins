@@ -73,7 +73,8 @@ TSharedRef<SDockTab> SPartEditorTab::MakeTab(const FSpawnTabArgs& SpawnTabArgs) 
             + SSplitter::Slot()
             .Value(0.25f)
             [
-                SNew(SPartContentBrowser, ViewportWidget)
+                SNew(SContentBrowser, ViewportWidget)
+                .AddPlusButton(true)
             ]
         ];
 }

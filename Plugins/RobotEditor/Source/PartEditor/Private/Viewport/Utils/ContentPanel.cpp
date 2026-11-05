@@ -21,8 +21,8 @@ void SPartThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& I
 
     TSharedPtr<FEditorUtilsViewportClient> ViewportClient = m_AssociatedViewport.Pin()->GetViewportClient();
     if (ViewportClient.IsValid()) {
-        ViewportClient.ConnectTileSingleClick(this);
-        ViewportClient.ConnectTileDoubleClick(this);
+        ViewportClient->ConnectTileSingleClick(this);
+        ViewportClient->ConnectTileDoubleClick(this);
     }
 
     FString AssetNameStr = m_AssetDataRecord.AssetName.ToString();
@@ -101,7 +101,7 @@ FReply SPartThumbnailTile::OnMouseButtonDoubleClick(const FGeometry& InMyGeometr
 
         UPDAPart* CastPart = Cast<UPDAPart>(FullyLoadedAsset);
         if (CastPart) {
-            OnThumbnailTriggered.Broadcast(CastPart);
+            OnThumbnailDoubleClicked.Broadcast(CastPart);
         }
     }
     return FReply::Unhandled();
@@ -115,35 +115,4 @@ void SPartContentBrowser::Construct(const FArguments& InArgs, TSharedPtr<SEditor
 
 void SPartContentBrowser::ScanPluginDirectory() {
     SContentBrowser::ScanPluginDirectory();
-
-    TWeakPtr<SEditorUtilsViewport> WeakViewport = m_AssociatedViewport;
-    m_TileGridContainer->AddSlot()
-        .Padding(FMargin(4.0f))
-        [
-            SNew(SBox)
-            .WidthOverride(96.0f)
-            .HeightOverride(96.0f)
-            [
-                SNew(SButton)
-                .ButtonStyle(FAppStyle::Get(), "SimpleButton")
-                .HAlign(HAlign_Center)
-                .VAlign(VAlign_Center)
-                .OnClicked_Lambda([WeakViewport]() -> FReply {
-                    TSharedPtr<SPartEditorViewport> CastViewport = StaticCastSharedPtr<SPartEditorViewport>(WeakViewport.Pin());
-                    if (!CastViewport.IsValid()) return FReply::Handled();
-
-                    UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
-                    if (NewBlankPart) {
-                        CastViewport->SetEditingObject(NewBlankPart);
-                    }
-
-                    return FReply::Handled();
-                })
-                [
-                    SNew(STextBlock)
-                    .Text(INVTEXT("+"))
-                    .Font(FAppStyle::Get().GetFontStyle("HeadingExtraLarge"))
-                ]
-            ]
-        ];
 }

@@ -19,11 +19,11 @@ TWeakPtr<SContentBrowser> SContentBrowser::m_Instance = nullptr;
 void SThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& InAssetData, TSharedPtr<class SEditorUtilsViewport> InViewportWidget) {
     m_AssetDataRecord = InAssetData;
     m_AssociatedViewport = InViewportWidget;
-    m_AddPlusButton = InArgs._AddPlusButton;
 
     TSharedPtr<FEditorUtilsViewportClient> ViewportClient = m_AssociatedViewport.Pin()->GetViewportClient();
     if (ViewportClient.IsValid()) {
-        ViewportClient->ConnectTile(this);
+        ViewportClient->ConnectTileSingleClick(this);
+        ViewportClient->ConnectTileDoubleClick(this);
     }
 
     FString AssetNameStr = m_AssetDataRecord.AssetName.ToString();
@@ -101,6 +101,12 @@ void SThumbnailTile::Construct(const FArguments& InArgs, const FAssetData& InAss
 void SContentBrowser::Construct(const FArguments& InArgs, TSharedPtr<class SEditorUtilsViewport> InViewportWidget) {
     m_AssociatedViewport = InViewportWidget;
     m_Instance = SharedThis(this);
+    m_AddPlusButton = InArgs._AddPlusButton;
+
+    TSharedPtr<FEditorUtilsViewportClient> ViewportClient = m_AssociatedViewport.Pin()->GetViewportClient();
+    if (ViewportClient.IsValid()) {
+        OnAddButtonPressed.AddSP(ViewportClient.Get(), &FEditorUtilsViewportClient::OnAddButtonPressed);
+    }
 
     ChildSlot
     [
@@ -140,11 +146,12 @@ FReply SThumbnailTile::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, c
     return FReply::Unhandled();
 }
 
-FReply SThumbnailTile::OnMouseButtonDown(const FGeometry* InMyGeometry, const FPointerEvent& InMouseEvent) {
+FReply SThumbnailTile::OnMouseButtonDown(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) {
     m_MouseButtonHeld = true;
+    return FReply::Handled();
 }
 
-FReply SThumbnailTile::OnMouseButtonUp(const FGeometry* InMyGeometry, const FPointerEvent& InMouseEvent) {
+FReply SThumbnailTile::OnMouseButtonUp(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) {
     if (m_MouseButtonHeld) {
         m_MouseButtonHeld = false;
 
@@ -152,8 +159,8 @@ FReply SThumbnailTile::OnMouseButtonUp(const FGeometry* InMyGeometry, const FPoi
             OnThumbnailClicked.Broadcast(GetRelatedPart());
             return FReply::Handled();
         }
-    return FReply::Unhandled();
     }
+    return FReply::Unhandled();
 }
 
 UPDAPart* SThumbnailTile::GetRelatedPart() {
@@ -169,6 +176,32 @@ UPDAPart* SThumbnailTile::GetRelatedPart() {
 void SContentBrowser::ScanPluginDirectory() {
     if (!m_TileGridContainer.IsValid()) return;
     m_TileGridContainer->ClearChildren();
+
+    if (m_AddPlusButton) {
+        TWeakPtr<SContentBrowser> WeakSelf = SharedThis(this);
+        m_TileGridContainer->AddSlot()
+            .Padding(FMargin(4.0f))
+            [
+                SNew(SBox)
+                .WidthOverride(96.0f)
+                .HeightOverride(96.0f)
+                [
+                    SNew(SButton)
+                    .ButtonStyle(FAppStyle::Get(), "SimpleButton")
+                    .HAlign(HAlign_Center)
+                    .VAlign(VAlign_Center)
+                    .OnClicked_Lambda([WeakSelf]() -> FReply {
+                        WeakSelf.Pin()->OnAddButtonPressed.Broadcast();
+                        return FReply::Handled();
+                    })
+                    [
+                        SNew(STextBlock)
+                        .Text(INVTEXT("+"))
+                        .Font(FAppStyle::Get().GetFontStyle("HeadingExtraLarge"))
+                    ]
+                ]
+            ];
+    }
 
     FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 

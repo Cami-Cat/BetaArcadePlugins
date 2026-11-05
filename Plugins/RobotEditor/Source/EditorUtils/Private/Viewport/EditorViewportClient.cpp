@@ -174,12 +174,21 @@ TTuple<FVector, FVector> FEditorUtilsViewportClient::CastRayFromCameraToMouse() 
     return MakeTuple(RayStart, RayEnd);
 }
 
+void FEditorUtilsViewportClient::OnThumbnailTriggered(UPDAPart* Part) {
+    UE_LOG(LogTemp, Log, TEXT("Tried to trigger thumbnail but called parent class OnThumbnailTriggered. Did you implement it?"));
+    return;
+}
+
 void FEditorUtilsViewportClient::ConnectTileSingleClick(SThumbnailTile* Tile) {
-    Tile->OnThumbnailTriggered.AddSP(this, &FEditorUtilsViewportClient::OnThumbnailTriggered);
+    Tile->OnThumbnailClicked.AddSP(this, &FEditorUtilsViewportClient::OnThumbnailTriggered);
 }
 
 void FEditorUtilsViewportClient::ConnectTileDoubleClick(SThumbnailTile* Tile) {
     Tile->OnThumbnailDoubleClicked.AddSP(this, &FEditorUtilsViewportClient::OnThumbnailTriggered);
+}
+
+void FEditorUtilsViewportClient::OnAddButtonPressed() {
+    return;
 }
 
 #undef LOCTEXT_NAMESPACE

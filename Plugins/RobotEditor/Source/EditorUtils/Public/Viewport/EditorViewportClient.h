@@ -25,9 +25,10 @@ public:
     TSharedPtr<IDetailsView> GetDetailsView() { return m_AssociatedDetailsView; }
 
     virtual FSceneView* CalcSceneView(FSceneViewFamily* ViewFamily, const int32 StereoViewIndex = INDEX_NONE) override;
-    virtual void OnThumbnailTriggered(UPDAPart* Part) {};
+    virtual void OnThumbnailTriggered(UPDAPart* Part) = 0;
     virtual void ConnectTileSingleClick(SThumbnailTile* Tile) = 0;
     virtual void ConnectTileDoubleClick(SThumbnailTile* Tile) = 0;
+    virtual void OnAddButtonPressed() = 0;
 
 private:
 

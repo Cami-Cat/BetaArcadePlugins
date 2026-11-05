@@ -62,6 +62,7 @@ public:
     virtual void OnThumbnailTriggered(UPDAPart* Part) override;
     virtual void ConnectTileSingleClick(SThumbnailTile* Tile) override;
     virtual void ConnectTileDoubleClick(SThumbnailTile* Tile) override;
+    virtual void OnAddButtonPressed() override;
 
 private:
 

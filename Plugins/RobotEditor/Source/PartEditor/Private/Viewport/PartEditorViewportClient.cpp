@@ -604,5 +604,11 @@ void FPartEditorViewportClient::ConnectTileDoubleClick(SThumbnailTile* Tile) {
     Tile->OnThumbnailDoubleClicked.AddSP(this, &FPartEditorViewportClient::OnThumbnailTriggered);
 }
 
+void FPartEditorViewportClient::OnAddButtonPressed() {
+    UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
+    if (NewBlankPart) {
+        OnThumbnailTriggered(NewBlankPart);
+    }
+}
 
 #undef LOCTEXT_NAMESPACE

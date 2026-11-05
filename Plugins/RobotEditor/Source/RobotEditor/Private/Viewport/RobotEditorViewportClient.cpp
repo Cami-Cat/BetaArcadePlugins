@@ -1,4 +1,5 @@
 #include "Viewport/RobotEditorViewportClient.h"
+#include "Viewport/Utils/PartContentBrowser.h"
 #include "Components/StaticMeshComponent.h"
 #include "Data/PartDat.h"
 
@@ -63,9 +64,9 @@ void FRobotEditorViewportClient::SetSelectedPart(UPDAPart* PartData) {
     UWorld* PreviewWorld = PreviewScene->GetWorld();
     if (!PreviewWorld) return;
 
-    if (m_PreviewActor.IsValid()) {
-        m_PreviewActor.Destroy();
-        m_PreviewActor.Reset();
+    if (m_PreviewActor) {
+        m_PreviewActor->Destroy();
+        m_PreviewActor->Reset();
     }
 
     AActor* NewActor = nullptr;
@@ -79,17 +80,9 @@ void FRobotEditorViewportClient::SetSelectedPart(UPDAPart* PartData) {
          }
     }
 
-    FColoredMaterialRenderProxy* SafeProxy = new FColoredMaterialRenderProxy(
-        GEngine->GeomMaterial->GetRenderProxy(),
-        c_PreviewColour;
-    );
-
     TSet<UActorComponent*> Components = NewActor->GetComponents();
-    for (auto& Component : Components) { 
+    for (auto& Component : Components) {
         UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Component);
-        if (StaticMeshComponent) {
-            StaticMeshComponent->Material(0, SafeProxy);
-        }
     }
 }
 
@@ -136,5 +129,9 @@ void FRobotEditorViewportClient::ConnectTileSingleClick(SThumbnailTile* Tile) {
 }
 
 void FRobotEditorViewportClient::ConnectTileDoubleClick(SThumbnailTile* Tile) {
+    return;
+}
+
+void FRobotEditorViewportClient::OnAddButtonPressed() {
     return;
 }

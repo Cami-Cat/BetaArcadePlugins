@@ -19,7 +19,10 @@ public:
 
 class SPartContentBrowser : public SContentBrowser {
 public:
-    SLATE_BEGIN_ARGS(SPartContentBrowser) {}
+    SLATE_BEGIN_ARGS(SPartContentBrowser)
+        : _AddPlusButton(false)
+    {}
+        SLATE_ARGUMENT(bool, AddPlusButton)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs, TSharedPtr<class SEditorUtilsViewport> InViewportWidget);

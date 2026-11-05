@@ -1,4 +1,5 @@
 #include "Viewport/PartEditorViewport.h"
+#include "Viewport/PartEditorViewportClient.h"
 #include "Widgets/SViewport.h"
 #include "Components/SkyLightComponent.h"
 #include "DragAndDrop/AssetDragDropOp.h"
