@@ -141,25 +141,6 @@ AActor* FEditorUtilsViewportClient::CreateActorComponent(UBlueprint* InObject, F
     UWorld* PreviewWorld = PreviewScene->GetWorld();
     if (UClass* ActorClass = InObject->GeneratedClass) {
         AActor* SpawnedActor = PreviewWorld->SpawnActor<AActor>(ActorClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-
-        TInlineComponentArray<UActorComponent*> ActorComponents;
-        SpawnedActor->GetComponents(ActorComponents);
-        for (UActorComponent* Component : ActorComponents) {
-            if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component)) {
-                PrimitiveComponent->SetSimulatePhysics(false);
-                PrimitiveComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-                PrimitiveComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-
-                PreviewScene->AddComponent(PrimitiveComponent, PrimitiveComponent->GetRelativeTransform());
-
-                if (UGeometryCollectionComponent* GCComp = Cast<UGeometryCollectionComponent>(PrimitiveComponent)) {
-                    GCComp->ObjectType = EObjectStateTypeEnum::Chaos_Object_Kinematic;
-
-                    GCComp->MarkRenderStateDirty();
-                }
-            }
-        }
-
         return SpawnedActor;
     }
     return nullptr;

@@ -17,11 +17,12 @@ public:
     virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
 
     virtual void SetSelectedPart(UPDAPart* PartData);
-    virtual void UpdatePreviewActor();
+    virtual void UpdatePreviewActor(bool ShouldShow);
     virtual void MovePreviewActorToLocation(FVector Location);
     virtual void CreatePartAtLocation(FVector Location);
-
     virtual void SetSelectedActorsData(const FPartData& PartData);
+
+    virtual FHitResult GetCastHitResult();
 
     TArray<FTransform> GetAnchorsRelativeToPart(UPDAPart* Part);
     FPartData GetSelectedPartData();

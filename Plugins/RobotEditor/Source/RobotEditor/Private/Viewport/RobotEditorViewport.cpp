@@ -4,11 +4,11 @@
 #include "SViewportToolBar.h"
 
 void SRobotEditorViewport::Construct(const FArguments& InArgs) {
-    SEditorViewport::Construct(SEditorViewport::FArguments());
+    SEditorUtilsViewport::Construct(SEditorUtilsViewport::FArguments());
 }
 
 TSharedRef<FEditorViewportClient> SRobotEditorViewport::MakeEditorViewportClient() {
-    m_ViewportClient = MakeShareable(new FRobotEditorViewportClient(m_PreviewScene));
+    m_ViewportClient = MakeShareable(new FRobotEditorViewportClient(*m_PreviewScene.Get()));
     return m_ViewportClient.ToSharedRef();
 }
 

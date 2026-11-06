@@ -15,6 +15,17 @@ public:
     FTransform RelativeTransform;
     UPROPERTY(BlueprintReadWrite, Category = "Part Data")
     TMap<FName, float> DataFloatMap;
+
+    FPartData()
+        : Part(nullptr)
+        , RelativeTransform(FTransform::Identity)
+    {}
+
+    FPartData(TSoftObjectPtr<UPDAPart> AssetPtr, const FTransform& InTransform, const TMap<FName, float>& InModifiers)
+        : Part(AssetPtr)
+        , RelativeTransform(InTransform)
+        , DataFloatMap(InModifiers)
+    {}
 };
 
 USTRUCT(BlueprintType)
