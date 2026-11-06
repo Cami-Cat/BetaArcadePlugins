@@ -176,21 +176,6 @@ TTuple<int32, bool, float> FPartEditorViewportClient::GetIndexOfClosestPoint(con
 void FPartEditorViewportClient::SetInspectedObject(UObject* NewPartObject) {
     if (!NewPartObject) return;
 
-    if (m_CurrentInspectedObject.Pin() && m_CurrentInspectedObject.Pin()->GetPackage() && m_CurrentInspectedObject.Pin()->GetPackage()->IsDirty()) {
-        FText DialogText = LOCTEXT("UnsavedChangesBody", "You may have unsaved data, do you wish to create a new part?");
-        FText DialogTitle = LOCTEXT("UnsavedChangesTitle", "UnsavedChanges");
-
-        EAppReturnType::Type UserChoice = FMessageDialog::Open(
-            EAppMsgType::YesNo,
-            DialogText,
-            DialogTitle
-        );
-
-        if (UserChoice != EAppReturnType::Yes){
-                return;
-        }
-    }
-
     m_CurrentInspectedObject = NewPartObject;
 
     if (m_AssociatedDetailsView.IsValid()) {
@@ -605,6 +590,21 @@ void FPartEditorViewportClient::ConnectTileDoubleClick(SThumbnailTile* Tile) {
 }
 
 void FPartEditorViewportClient::OnAddButtonPressed() {
+    if (m_CurrentInspectedObject.Pin() && m_CurrentInspectedObject.Pin()->GetPackage() && m_CurrentInspectedObject.Pin()->GetPackage()->IsDirty()) {
+        FText DialogText = LOCTEXT("UnsavedChangesBody", "You may have unsaved data, do you wish to create a new part?");
+        FText DialogTitle = LOCTEXT("UnsavedChangesTitle", "UnsavedChanges");
+
+        EAppReturnType::Type UserChoice = FMessageDialog::Open(
+            EAppMsgType::YesNo,
+            DialogText,
+            DialogTitle
+        );
+
+        if (UserChoice != EAppReturnType::Yes){
+                return;
+        }
+    }
+
     UPDAPart* NewBlankPart = NewObject<UPDAPart>(GetTransientPackage(), UPDAPart::StaticClass());
     if (NewBlankPart) {
         OnThumbnailTriggered(NewBlankPart);
