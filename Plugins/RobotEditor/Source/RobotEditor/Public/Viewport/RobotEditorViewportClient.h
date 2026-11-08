@@ -24,8 +24,11 @@ public:
 
     virtual FHitResult GetCastHitResult();
 
+    TTuple<int, int> SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor);
+    void CreatePartFromPreview();
+    FPartData GetPartDataFromActor(AActor* Actor);
+
     TArray<FTransform> GetAnchorsRelativeToPart(UPDAPart* Part);
-    FPartData GetSelectedPartData();
     AActor* GetActor();
     FVector GetActorLocation(AActor* Actor);
 
@@ -44,5 +47,7 @@ private:
     TObjectPtr<AActor> m_PreviewActor;
     TMap<TObjectPtr<AActor>, FPartData> m_Actors;
     TObjectPtr<AActor> m_SelectedActor;
+
+    int m_CurrentRotationNum = 0;
 
 };
