@@ -34,16 +34,16 @@ void FRobotEditorViewportClient::Tick(float DeltaSeconds) {
     FEditorUtilsViewportClient::Invalidate();
 }
 
-TTuple<int, int> FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor) {
+void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor) {
     if (!HitResult.bBlockingHit || !SnapActor) {
-        return MakeTuple(INDEX_NONE, INDEX_NONE);
+        return;
     }
 
     AActor* HitActor = HitResult.GetActor();
     const FPartData& HitData = GetPartDataFromActor(HitActor);
 
     if (!HitData.Part || !m_SelectedPart || HitData.Part->Anchors.Num() == 0 || m_SelectedPart->Anchors.Num() == 0) {
-        return MakeTuple(INDEX_NONE, INDEX_NONE);
+        return;
     }
 
     /*
@@ -77,7 +77,7 @@ TTuple<int, int> FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResul
      */
 
     if (ClosestDistanceSq > MAX_FLT) {
-        return MakeTuple(INDEX_NONE, INDEX_NONE);
+        return;
     }
 
     /*
@@ -178,7 +178,7 @@ TTuple<int, int> FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResul
     SnapActor->SetActorLocationAndRotation(FinalWorldLocation, FinalRotation);
 
     FEditorUtilsViewportClient::Invalidate();
-    return MakeTuple(TargetAnchorIndex, TargetSnapAnchorIndex);
+    return;
 }
 
 void FRobotEditorViewportClient::CreatePartFromPreview() {
