@@ -414,16 +414,17 @@ void FRobotEditorViewportClient::SaveActiveAsset() {
 
         FSaveAssetDialogConfig SaveDialogConfig;
         SaveDialogConfig.DialogTitleOverride = INVTEXT("Save new Robot");
-        SaveDialogConfig.DefaultPath = TEXT("/RobotEditor/Data/Robots");
+        SaveDialogConfig.DefaultPath = TEXT("/RobotEditor/Data/Robots/");
         SaveDialogConfig.DefaultAssetName = TEXT("Unnamed");
         SaveDialogConfig.AssetClassNames.Add(URobotDataContainer::StaticClass()->GetClassPathName());
 
         FOnObjectPathChosenForSave OnSavePressed = FOnObjectPathChosenForSave::CreateLambda([this, Data](const FString& ChosenPackagePath) {
             FString CleanAssetName = FPaths::GetBaseFilename(ChosenPackagePath);
+            FString TargetFolderPath = FPaths::GetPath(ChosenPackagePath);
 
             Data->Rename(*CleanAssetName, Data->GetOuter());
 
-            SaveNewAsset(Data, ChosenPackagePath, *CleanAssetName);
+            SaveNewAsset(Data, TargetFolderPath, *CleanAssetName);
         });
 
         FOnAssetDialogCancelled OnCancelPressed = FOnAssetDialogCancelled::CreateLambda([]() {
@@ -433,7 +434,7 @@ void FRobotEditorViewportClient::SaveActiveAsset() {
     }
 
     else if (CurrentPackage == GetTransientPackage()) {
-        FString TargetFolderPackagePath = TEXT("/RobotEditor/Data/Robots");
+        FString TargetFolderPackagePath = TEXT("/RobotEditor/Data/Robots/");
         SaveNewAsset(Data, TargetFolderPackagePath, CurrentName);
     }
 

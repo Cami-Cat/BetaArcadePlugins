@@ -550,7 +550,7 @@ void FPartEditorViewportClient::SaveNewAsset(UPDAPart* ActivePart, const FString
     */
     UPDAPart* NewSavedAsset = Cast<UPDAPart>(AssetToolsModule.Get().CreateAsset(
         UniqueAssetName,
-        ChosenPackagePath,
+        UniquePackagePath,
         UPDAPart::StaticClass(),
         nullptr
     ));
