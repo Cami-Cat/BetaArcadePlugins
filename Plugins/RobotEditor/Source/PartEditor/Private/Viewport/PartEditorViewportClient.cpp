@@ -506,10 +506,11 @@ void FPartEditorViewportClient::SaveActiveAsset() {
         */
         FOnObjectPathChosenForSave OnSavePressed = FOnObjectPathChosenForSave::CreateLambda([this, ActivePart](const FString& ChosenPackagePath) {
             FString CleanAssetName = FPaths::GetBaseFilename(ChosenPackagePath);
+            FString TargetFolderPath = FPaths::GetPath(ChosenPackagePath);
 
             ActivePart->Rename(*CleanAssetName, ActivePart->GetOuter());
 
-            SaveNewAsset(ActivePart, ChosenPackagePath, *CleanAssetName);
+            SaveNewAsset(ActivePart, TargetFolderPath, *CleanAssetName);
         });
 
         /*
@@ -550,7 +551,7 @@ void FPartEditorViewportClient::SaveNewAsset(UPDAPart* ActivePart, const FString
     */
     UPDAPart* NewSavedAsset = Cast<UPDAPart>(AssetToolsModule.Get().CreateAsset(
         UniqueAssetName,
-        UniquePackagePath,
+        ChosenPackagePath,
         UPDAPart::StaticClass(),
         nullptr
     ));
