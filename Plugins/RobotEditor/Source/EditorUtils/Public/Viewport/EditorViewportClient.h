@@ -30,6 +30,8 @@ public:
     virtual void ConnectTileDoubleClick(SThumbnailTile* Tile) = 0;
     virtual void OnAddButtonPressed() = 0;
 
+    virtual void ReloadAssetRegistryModule(const FString& AssetGamePath);
+
 private:
 
     const float c_MinZoom = 50.0f;

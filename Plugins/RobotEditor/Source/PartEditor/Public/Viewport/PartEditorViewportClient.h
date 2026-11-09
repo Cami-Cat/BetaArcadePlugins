@@ -86,7 +86,7 @@ private:
     const int c_BoundingBoxWireThickness = 1;
     const float c_AnchorSize = 12.0f;
     const float c_SelectedAnchorSize = c_AnchorSize * 1.5;
-    const float c_GridSnap = 0.5f;
+    const float c_GridSnap = 0.1f;
 
 private:
 

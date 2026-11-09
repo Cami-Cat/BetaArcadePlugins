@@ -475,6 +475,9 @@ void FPartEditorViewportClient::SaveActiveAsset() {
     */
     ActivePart->PartName = CurrentName;
 
+    FString AssetGamePath = TEXT("/RobotEditor/Data/Parts");
+    FEditorUtilsViewportClient::ReloadAssetRegistryModule();
+
     /*
     If our package already exists, was not created transiently by our editor, we can save it.
     This includes packages that have the inner name of UNNAMED, as they could've been created through the content-browser instead.
@@ -503,7 +506,7 @@ void FPartEditorViewportClient::SaveActiveAsset() {
         */
         FSaveAssetDialogConfig SaveDialogConfig;
         SaveDialogConfig.DialogTitleOverride = INVTEXT("Save new Asset");
-        SaveDialogConfig.DefaultPath = TEXT("/RobotEditor/Data");
+        SaveDialogConfig.DefaultPath = AssetGamePath;
         SaveDialogConfig.DefaultAssetName = TEXT("Unnamed");
         SaveDialogConfig.AssetClassNames.Add(UPDAPart::StaticClass()->GetClassPathName());
 
@@ -535,12 +538,12 @@ void FPartEditorViewportClient::SaveActiveAsset() {
     A lot of the logic done here is similar to the logic done in the lambda above. We give the location, we give create the asset and we save it in the same way.
     */
     else if (CurrentPackage == GetTransientPackage()) {
-        FString TargetFolderPackagePath = TEXT("/RobotEditor/Data");
+        FString TargetFolderPackagePath = AssetGamePath;
         SaveNewAsset(ActivePart, TargetFolderPackagePath, CurrentName);
     }
 
-    if (SPartContentBrowser::m_Instance.IsValid()) {
-        SPartContentBrowser::m_Instance.Pin()->ScanPluginDirectory();
+    if (SContentBrowser::m_Instance.IsValid()) {
+        SContentBrowser::m_Instance.Pin()->ScanPluginDirectory();
     }
 }
 

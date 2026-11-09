@@ -2,17 +2,41 @@
 #include "Viewport/Utils/PartContentBrowser.h"
 #include "Components/StaticMeshComponent.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "UObject/Package.h"
 #include "AssetToolsModule.h"
 #include "FileHelpers.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/SkyLightComponent.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
-#include "UObject/Package.h"
 #include "Structs/RobotData.h"
 #include "Data/PartDat.h"
 
 FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorUtilsViewportClient(InPreviewScene) {
-        // SetViewMode(VMI_Lit);
+        SetViewMode(VMI_Lit);
+        UDirectionalLightComponent* KeyLight = NewObject<UDirectionalLightComponent>();
+        KeyLight->Intensity = 3.0f;
+        KeyLight->LightColor = FColor::White;
+        KeyLight->SetForwardShadingPriority(1);
+
+        FRotator KeyRotation = FRotator(-45.0f, 45.0f, 0.0f);
+
+
+        UDirectionalLightComponent* FillLight = NewObject<UDirectionalLightComponent>();
+        FillLight->Intensity = 1.0f;
+        FillLight->LightColor = FColor(200, 220, 255);
+        FillLight->SetForwardShadingPriority(0);
+
+        FRotator FillRotation = FRotator(45.0f, -135.0f, 0.0f);
+
+
+        USkyLightComponent* SkyLight = NewObject<USkyLightComponent>();
+        SkyLight->Intensity = 0.5f;
+
+        PreviewScene->AddComponent(KeyLight, FTransform(KeyRotation));
+        PreviewScene->AddComponent(FillLight, FTransform(FillRotation));
+        PreviewScene->AddComponent(SkyLight, FTransform::Identity);
 
         if (!m_CurrentRobotData){
             CreateNewRobot();
@@ -399,6 +423,9 @@ void FRobotEditorViewportClient::SaveActiveAsset() {
 
     Data->RobotName = FName(*CurrentName);
 
+    FString AssetGamePath = TEXT("/RobotEditor/Data/Robots");
+    FEditorUtilsViewportClient::ReloadAssetRegistryModule(AssetGamePath);
+
     if (CurrentPackage != GetTransientPackage()) {
         TArray<UPackage*> PackagesToSave;
         PackagesToSave.Add(CurrentPackage);
@@ -408,13 +435,12 @@ void FRobotEditorViewportClient::SaveActiveAsset() {
 
         UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
     }
-
     else if (CurrentName.Equals(TEXT("UNNAMED"), ESearchCase::IgnoreCase)) {
         FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 
         FSaveAssetDialogConfig SaveDialogConfig;
         SaveDialogConfig.DialogTitleOverride = INVTEXT("Save new Robot");
-        SaveDialogConfig.DefaultPath = TEXT("/RobotEditor/Data/Robots/");
+        SaveDialogConfig.DefaultPath = AssetGamePath;
         SaveDialogConfig.DefaultAssetName = TEXT("Unnamed");
         SaveDialogConfig.AssetClassNames.Add(URobotDataContainer::StaticClass()->GetClassPathName());
 
@@ -434,9 +460,11 @@ void FRobotEditorViewportClient::SaveActiveAsset() {
     }
 
     else if (CurrentPackage == GetTransientPackage()) {
-        FString TargetFolderPackagePath = TEXT("/RobotEditor/Data/Robots/");
+        FString TargetFolderPackagePath = AssetGamePath;
         SaveNewAsset(Data, TargetFolderPackagePath, CurrentName);
     }
+
+
 
     return;
 }
@@ -465,6 +493,7 @@ void FRobotEditorViewportClient::SaveNewAsset(URobotDataContainer* RobotData, co
         PackagesToSave.Add(NewSavedAsset->GetPackage());
 
         UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+        LoadRobot(NewSavedAsset);
     }
 }
 
