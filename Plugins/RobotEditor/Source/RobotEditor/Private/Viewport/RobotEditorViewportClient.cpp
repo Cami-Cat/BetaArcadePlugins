@@ -6,15 +6,12 @@
 
 FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorUtilsViewportClient(InPreviewScene) {
+        SetViewMode(VMI_Lit);
         return;
 }
 
 void FRobotEditorViewportClient::Tick(float DeltaSeconds) {
     FEditorUtilsViewportClient::Tick(DeltaSeconds);
-
-    /*
-     * TODO : Turn this into a function and take it out of tick. Preferrably this could be something in the parent class: FEditorUtilsViewportClient.
-     */
 
     FHitResult bHit = GetCastHitResult();
     if (bHit.bBlockingHit) {
@@ -34,16 +31,16 @@ void FRobotEditorViewportClient::Tick(float DeltaSeconds) {
     FEditorUtilsViewportClient::Invalidate();
 }
 
-void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor) {
+TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor) {
     if (!HitResult.bBlockingHit || !SnapActor) {
-        return;
+        return MakeTuple(FPartData(), INDEX_NONE, INDEX_NONE);
     }
 
     AActor* HitActor = HitResult.GetActor();
     const FPartData& HitData = GetPartDataFromActor(HitActor);
 
     if (!HitData.Part || !m_SelectedPart || HitData.Part->Anchors.Num() == 0 || m_SelectedPart->Anchors.Num() == 0) {
-        return;
+        return MakeTuple(FPartData(), INDEX_NONE, INDEX_NONE);
     }
 
     /*
@@ -56,7 +53,7 @@ void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult
     FAnchor TargetHitAnchor;
     FVector ClosestAnchorWorldPos = FVector::ZeroVector;
     float ClosestDistanceSq = MAX_FLT;
-    int TargetAnchorIndex = 0;
+    int TargetAnchorIndex = INDEX_NONE;
     int CurrentIndex = 0;
 
     for (const FAnchor& Anchor : HitData.Part->Anchors) {
@@ -77,7 +74,7 @@ void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult
      */
 
     if (ClosestDistanceSq > MAX_FLT) {
-        return;
+        return MakeTuple(FPartData(), INDEX_NONE, INDEX_NONE);
     }
 
     /*
@@ -106,7 +103,7 @@ void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult
 
     FTransform SnapTransform = SnapActor->GetActorTransform();
     FAnchor SnapAnchor;
-    int TargetSnapAnchorIndex = 0;
+    int TargetSnapAnchorIndex = INDEX_NONE;
     CurrentIndex = 0;
 
     float BestAnchorScore = -MAX_FLT;
@@ -131,7 +128,8 @@ void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult
         CurrentIndex++;
     }
 
-    /* Long, Boring and indescribable maths up ahead. This required Quarternions, Dot Products and Vector Transforms. I never want to touch maths ever again.
+    /*
+     * Long, Boring and indescribable maths up ahead. This required Quarternions, Dot Products and Vector Transforms. I never want to touch maths ever again.
      * Nevertheless, time to explain how this works.
      *
      * Below, we declare LocalNormal and WorldNormals. LocalNormal determines that if an Anchor's position is nearly 0, 0, 0, we prevent a divide by 0 issue and declare that the anchor is pointing
@@ -142,7 +140,8 @@ void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult
     FVector LocalNormal = SnapAnchor.Position.IsNearlyZero() ? FVector::UpVector : SnapAnchor.Position.GetSafeNormal();
     FVector SnapAnchorNormalWorld = SnapTransform.TransformVector(LocalNormal).GetSafeNormal();
 
-    /* We want our objects to handle rotations. For example, should you be hovering over the side of a six-sided cube and have an object with a single anchor point, this will align the points together.
+    /*
+     * We want our objects to handle rotations. For example, should you be hovering over the side of a six-sided cube and have an object with a single anchor point, this will align the points together.
      * Thankfully, Unreal has a bunch of useful Quarternion functions inside their actual Quarternion data, so we just need to find the shortest safe angular rotation to get us to our desired point.
      * That's what this lovely FindBetweenNormals function does, it finds the shortest angular path to a point.
      */
@@ -150,7 +149,8 @@ void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult
     FQuat AlignmentRotation = FQuat::FindBetweenNormals(SnapAnchorNormalWorld, TargetSnapNormalWorld);
     FQuat FinalRotation = AlignmentRotation * SnapTransform.GetRotation();
 
-    /* Here we handle user-input-based rotation. When the user presses either Q or E, the m_CurrentRotationInputSteps will increment or decrement with a % of 4, ensuring that it will always wrap around
+    /*
+     * Here we handle user-input-based rotation. When the user presses either Q or E, the m_CurrentRotationInputSteps will increment or decrement with a % of 4, ensuring that it will always wrap around
      * between 0 -> 3.
      *
      * We then multiply our current rotation input steps by the amount we actually want an object to rotate, in this case we just want snapping every 90 degrees or so, so we can do so here.
@@ -161,6 +161,7 @@ void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult
      *
      * TODO : Actually increment m_CurrentRotationNum in InputKey()
      */
+
     float AngleOffset = m_CurrentRotationNum * 90.0f;
     FQuat AxisStepRotation = FQuat(TargetSnapNormalWorld, FMath::DegreesToRadians(AngleOffset));
     FinalRotation = AxisStepRotation * FinalRotation;
@@ -178,7 +179,7 @@ void FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult
     SnapActor->SetActorLocationAndRotation(FinalWorldLocation, FinalRotation);
 
     FEditorUtilsViewportClient::Invalidate();
-    return;
+    return MakeTuple(HitData, TargetAnchorIndex, TargetSnapAnchorIndex);
 }
 
 void FRobotEditorViewportClient::CreatePartFromPreview() {
@@ -190,7 +191,6 @@ void FRobotEditorViewportClient::CreatePartFromPreview() {
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
     FTransform SpawnTransform = m_PreviewActor->GetActorTransform();
-
     AActor* NewActor = FEditorUtilsViewportClient::CreateActorComponent(m_SelectedPart->Object, SpawnParams);
 
     if (NewActor) {

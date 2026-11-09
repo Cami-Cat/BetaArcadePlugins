@@ -24,7 +24,7 @@ public:
 
     virtual FHitResult GetCastHitResult();
 
-    void SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor);
+    TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor);
     void CreatePartFromPreview();
     FPartData GetPartDataFromActor(AActor* Actor);
 
