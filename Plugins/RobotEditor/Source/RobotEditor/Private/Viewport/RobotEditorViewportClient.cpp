@@ -203,8 +203,6 @@ TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> FRobotEdi
     //  *
     //  * We then apply this rotation after the previous one. (Quarternion multiplication is different to actual multiplication. Consider it adding angles sequentially rather than multiplying the
     //  * values directly.)
-    //  *
-    //  * TODO : Actually increment m_CurrentRotationNum in InputKey()
     //  */
 
     float AngleOffset = m_CurrentRotationNum * 90.0f;
@@ -434,6 +432,17 @@ void FRobotEditorViewportClient::SaveActiveAsset() {
 
     URobotDataContainer* Data = m_CurrentRobotData;
     TArray<FPartData> PartData;
+
+    FTransform CenterOfMass;
+    CenterOfMass.SetTranslation(GetCenterOfMass());
+
+    for (auto& KVPair : m_Actors) {
+        FPartData& InnerData = KVPair.Value;
+        if (AActor* Actor = KVPair.Key) {
+            InnerData.RelativeTransform.SetLocation(CenterOfMass.InverseTransformPosition(Actor->GetActorLocation()));
+        }
+    }
+
     m_Actors.GenerateValueArray(PartData);
 
     Data->RobotParts.Parts = PartData;
@@ -489,8 +498,7 @@ void FRobotEditorViewportClient::SaveActiveAsset() {
         SaveNewAsset(Data, TargetFolderPackagePath, CurrentName);
     }
 
-
-
+    LoadRobot(m_CurrentRobotData);
     return;
 }
 
@@ -518,7 +526,6 @@ void FRobotEditorViewportClient::SaveNewAsset(URobotDataContainer* RobotData, co
         PackagesToSave.Add(NewSavedAsset->GetPackage());
 
         UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
-        LoadRobot(NewSavedAsset);
     }
 }
 
@@ -567,9 +574,13 @@ void FRobotEditorViewportClient::ClearScene() {
 }
 
 void FRobotEditorViewportClient::UpdateOrbitTargetPoint() {
+    m_TargetOrbit = GetCenterOfMass();
+    return;
+}
+
+FVector FRobotEditorViewportClient::GetCenterOfMass() {
     if (m_Actors.IsEmpty()) {
-        m_TargetOrbit = FVector::ZeroVector;
-        return;
+        return FVector::ZeroVector;
     }
 
     FVector TotalPositions;
@@ -577,9 +588,7 @@ void FRobotEditorViewportClient::UpdateOrbitTargetPoint() {
     for (const TPair<AActor*, FPartData>& KVpair : m_Actors) {
         TotalPositions += KVpair.Key->GetActorLocation();
     }
-
-    m_TargetOrbit = TotalPositions / TotalParts;
-    return;
+    return TotalPositions / TotalParts;
 }
 
 void FRobotEditorViewportClient::ApplyPreviewMaterial() {

@@ -46,6 +46,7 @@ public:
 
     void UpdateOrbitTargetPoint();
     void ApplyPreviewMaterial();
+    FVector GetCenterOfMass();
 
 private:
 
