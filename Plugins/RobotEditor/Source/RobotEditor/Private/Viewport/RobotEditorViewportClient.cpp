@@ -587,7 +587,21 @@ void FRobotEditorViewportClient::ApplyPreviewMaterial() {
         return;
     }
 
-    UMaterialInterface* BaseMaterial = GEngine->WireframeMaterial;
+    UMaterialInterface* BaseMaterial = Cast<UMaterialInterface>(StaticLoadObject(
+        UMaterialInterface::StaticClass(),
+        nullptr,
+        TEXT("/RobotEditor/Materials/M_RobotPreview.M_RobotPreview")
+    ));
+
+    /*
+     * Double validation, try to fall-back to a different type of material before completely failing altogether.
+     */
+
+    if (!BaseMaterial) {
+        BaseMaterial = GEngine->WireframeMaterial;
+    } if (!BaseMaterial) {
+        return;
+    }
 
     UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(BaseMaterial, m_PreviewActor);
     if (!DynamicMaterial) {
@@ -595,6 +609,7 @@ void FRobotEditorViewportClient::ApplyPreviewMaterial() {
     }
 
     DynamicMaterial->SetVectorParameterValue(FName("Color"), FLinearColor::Green);
+    DynamicMaterial->SetScalarParameterValue(FName("Opacity"), 0.3f);
 
     TInlineComponentArray<UStaticMeshComponent*> MeshComponents;
     m_PreviewActor->GetComponents(MeshComponents);
