@@ -361,12 +361,17 @@ bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLis
                 ActivePart->Modify();
 
                 FVector CurrentPos = ActivePart->Anchors[m_SelectedIndex].Position;
-                FVector NewPos = CurrentPos + Drag;
+                FVector RawNewPos = CurrentPos + Drag;
+                FVector SnappedNewPos = RawNewPos;
 
-                FSnappingUtils::SnapPointToGrid(NewPos, FVector(0.01));
-                Drag = NewPos - CurrentPos;
+                FSnappingUtils::SnapPointToGrid(SnappedNewPos, FVector(c_GridSnap));
 
-                ActivePart->Anchors[m_SelectedIndex].Position = NewPos;
+                SnappedNewPos.X = FMath::RoundToDouble(RawNewPos.X / c_GridSnap) * c_GridSnap;
+                SnappedNewPos.Y = FMath::RoundToDouble(RawNewPos.Y / c_GridSnap) * c_GridSnap;
+                SnappedNewPos.Z = FMath::RoundToDouble(RawNewPos.Z / c_GridSnap) * c_GridSnap;
+                Drag = RawNewPos - CurrentPos;
+
+                ActivePart->Anchors[m_SelectedIndex].Position = SnappedNewPos;
                 bHandled = true;
             }
             break;
@@ -374,13 +379,18 @@ bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLis
         case EPartSelectionType::CollisionPoint: {
             if (ActivePart->CollisionPoints.IsValidIndex(m_SelectedIndex)) {
                 ActivePart->Modify();
-                FVector CurrentPos = ActivePart->CollisionPoints[m_SelectedIndex];
-                FVector NewPos = CurrentPos + Drag;
+                FVector CurrentPos = ActivePart->Anchors[m_SelectedIndex].Position;
+                FVector RawNewPos = CurrentPos + Drag;
+                FVector SnappedNewPos = RawNewPos;
 
-                FSnappingUtils::SnapPointToGrid(NewPos, FVector(c_GridSnap));
-                Drag = NewPos - CurrentPos;
+                FSnappingUtils::SnapPointToGrid(SnappedNewPos, FVector(c_GridSnap));
 
-                ActivePart->CollisionPoints[m_SelectedIndex] = NewPos;
+                SnappedNewPos.X = FMath::RoundToDouble(RawNewPos.X / c_GridSnap) * c_GridSnap;
+                SnappedNewPos.Y = FMath::RoundToDouble(RawNewPos.Y / c_GridSnap) * c_GridSnap;
+                SnappedNewPos.Z = FMath::RoundToDouble(RawNewPos.Z / c_GridSnap) * c_GridSnap;
+                Drag = RawNewPos - CurrentPos;
+
+                ActivePart->CollisionPoints[m_SelectedIndex] = SnappedNewPos;
                 bHandled = true;
             }
             break;
@@ -476,7 +486,7 @@ void FPartEditorViewportClient::SaveActiveAsset() {
     ActivePart->PartName = CurrentName;
 
     FString AssetGamePath = TEXT("/RobotEditor/Data/Parts");
-    FEditorUtilsViewportClient::ReloadAssetRegistryModule();
+    FEditorUtilsViewportClient::ReloadAssetRegistryModule(AssetGamePath);
 
     /*
     If our package already exists, was not created transiently by our editor, we can save it.

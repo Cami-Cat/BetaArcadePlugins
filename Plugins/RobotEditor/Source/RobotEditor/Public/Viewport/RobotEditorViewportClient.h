@@ -44,6 +44,8 @@ public:
     void LoadRobot(URobotDataContainer* RobotData);
     void ClearScene();
 
+    void UpdateOrbitTargetPoint();
+
 private:
 
     const FLinearColor c_PreviewColour = FLinearColor(1.0f, 0.2f, 0.2f, 0.3f);
@@ -54,8 +56,9 @@ private:
     TObjectPtr<AActor> m_PreviewActor;
     TMap<TObjectPtr<AActor>, FPartData> m_Actors;
     TObjectPtr<AActor> m_SelectedActor;
-
     TObjectPtr<URobotDataContainer> m_CurrentRobotData;
+
+    FVector m_TargetOrbit = FVector::ZeroVector;
 
     int m_CurrentRotationNum = 0;
 

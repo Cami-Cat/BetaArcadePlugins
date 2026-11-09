@@ -38,6 +38,8 @@ FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewS
         PreviewScene->AddComponent(FillLight, FTransform(FillRotation));
         PreviewScene->AddComponent(SkyLight, FTransform::Identity);
 
+        m_TargetOrbit = m_OrbitTargetPoint;
+
         if (!m_CurrentRobotData){
             CreateNewRobot();
         }
@@ -61,6 +63,12 @@ void FRobotEditorViewportClient::Tick(float DeltaSeconds) {
     } else {
         UpdatePreviewActor(false);
         MovePreviewActorToLocation(bHit.TraceEnd);
+    }
+
+    if (!FVector::PointsAreNear(m_TargetOrbit, m_OrbitTargetPoint, 0.01f)) {
+        float Alpha = 5.0f * DeltaSeconds;
+        m_OrbitTargetPoint = FMath::Lerp(m_OrbitTargetPoint, m_TargetOrbit, FMath::Clamp(Alpha, 0.0f, 1.0f));
+        FEditorUtilsViewportClient::UpdateCameraPositionFromOrbit();
     }
     FEditorUtilsViewportClient::Invalidate();
 }
@@ -231,6 +239,9 @@ void FRobotEditorViewportClient::CreatePartFromPreview() {
         NewActor->SetActorTransform(SpawnTransform);
         m_Actors.Emplace(NewActor, FPartData(m_SelectedPart, SpawnTransform, {}));
     }
+
+    UpdateOrbitTargetPoint();
+    FEditorUtilsViewportClient::Invalidate();
 }
 
 FHitResult FRobotEditorViewportClient::GetCastHitResult() {
@@ -263,6 +274,7 @@ bool FRobotEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
                     HitActor->Destroy();
                 }
             }
+            UpdateOrbitTargetPoint();
             return true;
         }
 
@@ -356,6 +368,7 @@ void FRobotEditorViewportClient::CreatePartAtTransform(UPDAPart* Part, FTransfor
         }
     }
 
+    UpdateOrbitTargetPoint();
     FEditorUtilsViewportClient::Invalidate();
     return;
 }
@@ -539,4 +552,20 @@ void FRobotEditorViewportClient::ClearScene() {
         KVPair.Key->Destroy();
     }
     m_Actors.Empty();
+}
+
+void FRobotEditorViewportClient::UpdateOrbitTargetPoint() {
+    if (m_Actors.IsEmpty()) {
+        m_TargetOrbit = FVector::ZeroVector;
+        return;
+    }
+
+    FVector TotalPositions;
+    int TotalParts = m_Actors.Num();
+    for (const TPair<AActor*, FPartData>& KVpair : m_Actors) {
+        TotalPositions += KVpair.Key->GetActorLocation();
+    }
+
+    m_TargetOrbit = TotalPositions / TotalParts;
+    return;
 }
