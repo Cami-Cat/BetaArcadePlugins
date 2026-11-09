@@ -1,12 +1,22 @@
 #include "Viewport/RobotEditorViewportClient.h"
 #include "Viewport/Utils/PartContentBrowser.h"
 #include "Components/StaticMeshComponent.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "AssetToolsModule.h"
+#include "FileHelpers.h"
+#include "ContentBrowserModule.h"
+#include "IContentBrowserSingleton.h"
+#include "UObject/Package.h"
 #include "Structs/RobotData.h"
 #include "Data/PartDat.h"
 
 FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorUtilsViewportClient(InPreviewScene) {
-        SetViewMode(VMI_Lit);
+        // SetViewMode(VMI_Lit);
+
+        if (!m_CurrentRobotData){
+            CreateNewRobot();
+        }
         return;
 }
 
@@ -215,13 +225,30 @@ FHitResult FRobotEditorViewportClient::GetCastHitResult() {
 
 bool FRobotEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
     if (EventArgs.Key == EKeys::LeftMouseButton && EventArgs.Event == IE_Pressed) {
-        if (!m_SelectedPart) { return FEditorUtilsViewportClient::InputKey(EventArgs); }
+        /*
+         * Right click orbits the view, but we need a button to remove objects that have been placed. So, we'll just override left control here and handle removing the hit actor.
+         * We don't have to do much logic here, we're not checking for connected anchors so we can just remove it from the map and destroy the object.
+         */
+        if (EventArgs.Viewport->KeyState(EKeys::LeftControl)) {
+            FHitResult HitResult = GetCastHitResult();
+
+            if (HitResult.bBlockingHit) {
+                AActor* HitActor = HitResult.GetActor();
+                if (HitActor && m_Actors.Find(HitActor)) {
+                    m_Actors.Remove(HitActor);
+                    HitActor->Destroy();
+                }
+            }
+            return true;
+        }
+
+        if (!m_SelectedPart) { return true; }
         /*
          *   If there isn't a part displayed on the screen, place immediately at 0, 0, 0. If there is a part on the screen, perform a cast and ensure that the cast is hitting something.
          *   If it isn't, pass this down thorugh FEditorUtilsViewportClient::InputKey(EventArgs);
          */
         if (m_Actors.Num() == 0) {
-            CreatePartAtLocation(FVector::ZeroVector);
+            CreatePartAtTransform(m_SelectedPart, FTransform::Identity);
         }
         else {
             FHitResult HitResult = GetCastHitResult();
@@ -229,13 +256,15 @@ bool FRobotEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
                 if (m_PreviewActor) {
                     CreatePartFromPreview();
                 } else {
-                    CreatePartAtLocation(HitResult.ImpactPoint);
+                    CreatePartAtTransform(m_SelectedPart, FTransform(HitResult.ImpactPoint));
                 }
             }
         }
 
          return true;
     }
+
+
 
     return FEditorUtilsViewportClient::InputKey(EventArgs);
 }
@@ -288,22 +317,18 @@ void FRobotEditorViewportClient::MovePreviewActorToLocation(FVector Location) {
     return;
 }
 
-void FRobotEditorViewportClient::CreatePartAtLocation(FVector Location) {
-    if (!m_SelectedPart) { return; }
+void FRobotEditorViewportClient::CreatePartAtTransform(UPDAPart* Part, FTransform Transform) {
+    if (!Part) { return; }
 
-    if (m_SelectedPart->Object) {
+    if (Part->Object) {
         FActorSpawnParameters SpawnParams;
         SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-        FTransform SpawnTransform;
-        SpawnTransform.SetLocation(Location);
-        SpawnTransform.SetRotation(FRotator(0.0f, 90.0f, 0.0f).Quaternion());
-
-        AActor* NewActor = FEditorUtilsViewportClient::CreateActorComponent(m_SelectedPart->Object, SpawnParams);
-        NewActor->SetActorTransform(SpawnTransform);
+        AActor* NewActor = FEditorUtilsViewportClient::CreateActorComponent(Part->Object, SpawnParams);
+        NewActor->SetActorTransform(Transform);
 
         if (NewActor) {
-            m_Actors.Emplace(NewActor, FPartData(m_SelectedPart, SpawnTransform, {}));
+            m_Actors.Emplace(NewActor, FPartData(Part, Transform, {}));
         }
     }
 
@@ -351,4 +376,137 @@ void FRobotEditorViewportClient::ConnectTileDoubleClick(SThumbnailTile* Tile) {
 
 void FRobotEditorViewportClient::OnAddButtonPressed() {
     return;
+}
+
+void FRobotEditorViewportClient::SaveActiveAsset() {
+    if (!m_CurrentRobotData || m_Actors.IsEmpty()) {
+        return;
+    }
+
+    URobotDataContainer* Data = m_CurrentRobotData;
+    TArray<FPartData> PartData;
+    m_Actors.GenerateValueArray(PartData);
+
+    Data->RobotParts.Parts = PartData;
+
+    UPackage* CurrentPackage = Data->GetPackage();
+    FString CurrentName = Data->RobotName.ToString();
+    CurrentName = CurrentName.Replace(TEXT(" "), TEXT("_"));
+
+    if (CurrentName.IsEmpty() || CurrentName.Len() == 0) {
+        CurrentName = TEXT("UNNAMED");
+    }
+
+    Data->RobotName = FName(*CurrentName);
+
+    if (CurrentPackage != GetTransientPackage()) {
+        TArray<UPackage*> PackagesToSave;
+        PackagesToSave.Add(CurrentPackage);
+
+        CurrentPackage->MarkPackageDirty();
+        Data->MarkPackageDirty();
+
+        UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+    }
+
+    else if (CurrentName.Equals(TEXT("UNNAMED"), ESearchCase::IgnoreCase)) {
+        FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+
+        FSaveAssetDialogConfig SaveDialogConfig;
+        SaveDialogConfig.DialogTitleOverride = INVTEXT("Save new Robot");
+        SaveDialogConfig.DefaultPath = TEXT("/RobotEditor/Data/Robots");
+        SaveDialogConfig.DefaultAssetName = TEXT("Unnamed");
+        SaveDialogConfig.AssetClassNames.Add(URobotDataContainer::StaticClass()->GetClassPathName());
+
+        FOnObjectPathChosenForSave OnSavePressed = FOnObjectPathChosenForSave::CreateLambda([this, Data](const FString& ChosenPackagePath) {
+            FString CleanAssetName = FPaths::GetBaseFilename(ChosenPackagePath);
+
+            Data->Rename(*CleanAssetName, Data->GetOuter());
+
+            SaveNewAsset(Data, ChosenPackagePath, *CleanAssetName);
+        });
+
+        FOnAssetDialogCancelled OnCancelPressed = FOnAssetDialogCancelled::CreateLambda([]() {
+        });
+
+        ContentBrowserModule.Get().CreateSaveAssetDialog(SaveDialogConfig, OnSavePressed, OnCancelPressed);
+    }
+
+    else if (CurrentPackage == GetTransientPackage()) {
+        FString TargetFolderPackagePath = TEXT("/RobotEditor/Data/Robots");
+        SaveNewAsset(Data, TargetFolderPackagePath, CurrentName);
+    }
+
+    return;
+}
+
+void FRobotEditorViewportClient::SaveNewAsset(URobotDataContainer* RobotData, const FString& ChosenPackagePath, const FString& CurrentName) {
+    FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+    FString UniquePackagePath;
+    FString UniqueAssetName;
+
+    AssetToolsModule.Get().CreateUniqueAssetName(ChosenPackagePath + TEXT("/") + CurrentName, TEXT(""), UniquePackagePath, UniqueAssetName);
+    URobotDataContainer* NewSavedAsset = Cast<URobotDataContainer>(AssetToolsModule.Get().CreateAsset(
+        UniqueAssetName,
+        ChosenPackagePath,
+        URobotDataContainer::StaticClass(),
+        nullptr
+    ));
+
+    if (NewSavedAsset) {
+        NewSavedAsset->RobotParts = RobotData->RobotParts;
+        NewSavedAsset->RobotName = FName(*UniqueAssetName);
+
+        NewSavedAsset->MarkPackageDirty();
+        NewSavedAsset->GetPackage()->MarkPackageDirty();
+
+        TArray<UPackage*> PackagesToSave;
+        PackagesToSave.Add(NewSavedAsset->GetPackage());
+
+        UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, false);
+    }
+}
+
+void FRobotEditorViewportClient::CreateNewRobot() {
+    if (m_CurrentRobotData) {
+
+        /*
+         * Clear the viewport so that any constructed actors no longer exist and will not be a part of the next robot data.
+         */
+
+        ClearScene();
+    }
+
+    m_CurrentRobotData = NewObject<URobotDataContainer>(
+        GetTransientPackage(),
+        URobotDataContainer::StaticClass()
+    );
+
+    m_CurrentRobotData->RobotParts = FRobotData();
+}
+
+void FRobotEditorViewportClient::LoadRobot(URobotDataContainer* RobotData) {
+    if (m_CurrentRobotData) {
+        ClearScene();
+    }
+
+    m_CurrentRobotData = RobotData;
+
+    /*
+     * Now we need to populate our robot with existing data. It should be easy, since the data we're saving is just an array of structs that contains everything we need already.
+     */
+
+    for (const FPartData& Part : RobotData->RobotParts.Parts) {
+        UPDAPart* VisualPart = Part.Part.Get();
+        FTransform Transform = Part.RelativeTransform;
+
+        CreatePartAtTransform(VisualPart, Transform);
+    }
+}
+
+void FRobotEditorViewportClient::ClearScene() {
+    for (const TPair<AActor*, FPartData>& KVPair : m_Actors) {
+        KVPair.Key->Destroy();
+    }
+    m_Actors.Empty();
 }

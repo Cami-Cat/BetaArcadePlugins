@@ -17,7 +17,12 @@ public:
     virtual TSharedPtr<FEditorUtilsViewportClient> GetViewportClient() override { return m_ViewportClient; }
     virtual void SetEditingObject(UObject* NewObject) override {}
 
+    virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+    virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+    virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+
 protected:
+
     virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient();
     virtual TSharedPtr<SWidget> BuildViewportToolbar() override;
 

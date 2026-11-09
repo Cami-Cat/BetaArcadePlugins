@@ -19,7 +19,7 @@ public:
     virtual void SetSelectedPart(UPDAPart* PartData);
     virtual void UpdatePreviewActor(bool ShouldShow);
     virtual void MovePreviewActorToLocation(FVector Location);
-    virtual void CreatePartAtLocation(FVector Location);
+    virtual void CreatePartAtTransform(UPDAPart* Part, FTransform Transform);
     virtual void SetSelectedActorsData(const FPartData& PartData);
 
     virtual FHitResult GetCastHitResult();
@@ -37,6 +37,13 @@ public:
     virtual void ConnectTileDoubleClick(SThumbnailTile* Tile) override;
     virtual void OnAddButtonPressed() override;
 
+    virtual void SaveActiveAsset();
+    void SaveNewAsset(URobotDataContainer* RobotData, const FString& ChosenPackagePath, const FString& CurrentName);
+
+    void CreateNewRobot();
+    void LoadRobot(URobotDataContainer* RobotData);
+    void ClearScene();
+
 private:
 
     const FLinearColor c_PreviewColour = FLinearColor(1.0f, 0.2f, 0.2f, 0.3f);
@@ -47,6 +54,8 @@ private:
     TObjectPtr<AActor> m_PreviewActor;
     TMap<TObjectPtr<AActor>, FPartData> m_Actors;
     TObjectPtr<AActor> m_SelectedActor;
+
+    TObjectPtr<URobotDataContainer> m_CurrentRobotData;
 
     int m_CurrentRotationNum = 0;
 

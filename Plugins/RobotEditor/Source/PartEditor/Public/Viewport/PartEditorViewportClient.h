@@ -29,7 +29,7 @@ public:
 
 // Override base class functionality
 
-    void SaveActiveAsset();
+    virtual void SaveActiveAsset() override;
     virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
     virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
 

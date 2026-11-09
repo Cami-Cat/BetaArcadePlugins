@@ -14,7 +14,7 @@ public:
     FEditorUtilsViewportClient(FPreviewScene& InPreviewScene);
     virtual ~FEditorUtilsViewportClient() override;
 
-    void SaveActiveAsset();
+    virtual void SaveActiveAsset() {};
     virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
     virtual bool InputAxis(const FInputKeyEventArgs& EventArgs) override;
     virtual void Tick(float DeltaSeconds) override;
