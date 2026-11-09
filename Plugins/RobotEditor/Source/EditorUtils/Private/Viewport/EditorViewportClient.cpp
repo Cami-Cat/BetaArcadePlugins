@@ -145,6 +145,16 @@ AActor* FEditorUtilsViewportClient::CreateActorComponent(UBlueprint* InObject, F
     UWorld* PreviewWorld = PreviewScene->GetWorld();
     if (UClass* ActorClass = InObject->GeneratedClass) {
         AActor* SpawnedActor = PreviewWorld->SpawnActor<AActor>(ActorClass, FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+
+        SpawnedActor->SetActorTickEnabled(false);
+
+        TInlineComponentArray<UActorComponent*> Components;
+        SpawnedActor->GetComponents(Components);
+        for (UActorComponent* Component : Components) {
+            if (Component) {
+                Component->SetComponentTickEnabled(false);
+            }
+        }
         return SpawnedActor;
     }
     return nullptr;

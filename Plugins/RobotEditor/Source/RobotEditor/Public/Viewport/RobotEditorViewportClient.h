@@ -45,6 +45,7 @@ public:
     void ClearScene();
 
     void UpdateOrbitTargetPoint();
+    void ApplyPreviewMaterial();
 
 private:
 

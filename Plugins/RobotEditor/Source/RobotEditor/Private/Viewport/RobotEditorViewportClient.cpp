@@ -1,5 +1,8 @@
 #include "Viewport/RobotEditorViewportClient.h"
 #include "Viewport/Utils/PartContentBrowser.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/Material.h"
+#include "MaterialDomain.h"
 #include "Components/StaticMeshComponent.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "UObject/Package.h"
@@ -151,7 +154,7 @@ TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> FRobotEdi
     float BestAnchorScore = -MAX_FLT;
 
     for (const FAnchor& Anchor : m_SelectedPart->Anchors) {
-        FVector LocalNormal = Anchor.Position.IsNearlyZero() ? FVector::UpVector : Anchor.Position.GetSafeNormal();
+        FVector LocalNormal = Anchor.Position.IsNearlyZero() ? -FVector::UpVector : Anchor.Position.GetSafeNormal();
 
         FVector AnchorNormalWorld = SnapTransform.TransformVector(LocalNormal).GetSafeNormal();
         float DirectionScore = FVector::DotProduct(AnchorNormalWorld, TargetSnapNormalWorld);
@@ -179,7 +182,7 @@ TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> FRobotEdi
      *
      * We then calculate the actual normal based on the transform in the world, and turn it into a value between -1.0 and 1.0 for our necessary transformations.
      */
-    FVector LocalNormal = SnapAnchor.Position.IsNearlyZero() ? FVector::UpVector : SnapAnchor.Position.GetSafeNormal();
+    FVector LocalNormal = SnapAnchor.Position.IsNearlyZero() ? -FVector::UpVector : SnapAnchor.Position.GetSafeNormal();
     FVector SnapAnchorNormalWorld = SnapTransform.TransformVector(LocalNormal).GetSafeNormal();
 
     /*
@@ -191,18 +194,18 @@ TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> FRobotEdi
     FQuat AlignmentRotation = FQuat::FindBetweenNormals(SnapAnchorNormalWorld, TargetSnapNormalWorld);
     FQuat FinalRotation = AlignmentRotation * SnapTransform.GetRotation();
 
-    /*
-     * Here we handle user-input-based rotation. When the user presses either Q or E, the m_CurrentRotationInputSteps will increment or decrement with a % of 4, ensuring that it will always wrap around
-     * between 0 -> 3.
-     *
-     * We then multiply our current rotation input steps by the amount we actually want an object to rotate, in this case we just want snapping every 90 degrees or so, so we can do so here.
-     * (I also did this during Advanced Development Techniques, through `(TAU * 4)) * rotation_num`. So this is a fun useful little tidbit for rotation snapping!)
-     *
-     * We then apply this rotation after the previous one. (Quarternion multiplication is different to actual multiplication. Consider it adding angles sequentially rather than multiplying the
-     * values directly.)
-     *
-     * TODO : Actually increment m_CurrentRotationNum in InputKey()
-     */
+    // /*
+    //  * Here we handle user-input-based rotation. When the user presses either Q or E, the m_CurrentRotationInputSteps will increment or decrement with a % of 4, ensuring that it will always wrap around
+    //  * between 0 -> 3.
+    //  *
+    //  * We then multiply our current rotation input steps by the amount we actually want an object to rotate, in this case we just want snapping every 90 degrees or so, so we can do so here.
+    //  * (I also did this during Advanced Development Techniques, through `(TAU * 4)) * rotation_num`. So this is a fun useful little tidbit for rotation snapping!)
+    //  *
+    //  * We then apply this rotation after the previous one. (Quarternion multiplication is different to actual multiplication. Consider it adding angles sequentially rather than multiplying the
+    //  * values directly.)
+    //  *
+    //  * TODO : Actually increment m_CurrentRotationNum in InputKey()
+    //  */
 
     float AngleOffset = m_CurrentRotationNum * 90.0f;
     FQuat AxisStepRotation = FQuat(TargetSnapNormalWorld, FMath::DegreesToRadians(AngleOffset));
@@ -259,6 +262,14 @@ FHitResult FRobotEditorViewportClient::GetCastHitResult() {
 }
 
 bool FRobotEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
+
+    if (EventArgs.Key == EKeys::E && EventArgs.Event == IE_Pressed) {
+        m_CurrentRotationNum = ((m_CurrentRotationNum + 1) % 4);
+    }
+    if (EventArgs.Key == EKeys::Q && EventArgs.Event == IE_Pressed) {
+        m_CurrentRotationNum = ((m_CurrentRotationNum - 1) % 4);
+    }
+
     if (EventArgs.Key == EKeys::LeftMouseButton && EventArgs.Event == IE_Pressed) {
         /*
          * Right click orbits the view, but we need a button to remove objects that have been placed. So, we'll just override left control here and handle removing the hit actor.
@@ -329,6 +340,7 @@ void FRobotEditorViewportClient::SetSelectedPart(UPDAPart* PartData) {
             NewActor = FEditorUtilsViewportClient::CreateActorComponent(PartData->Object, SpawnParams);
             if (NewActor) {
                 m_PreviewActor = NewActor;
+                ApplyPreviewMaterial();
             }
         }
     }
@@ -568,4 +580,39 @@ void FRobotEditorViewportClient::UpdateOrbitTargetPoint() {
 
     m_TargetOrbit = TotalPositions / TotalParts;
     return;
+}
+
+void FRobotEditorViewportClient::ApplyPreviewMaterial() {
+    if (!m_PreviewActor) {
+        return;
+    }
+
+    UMaterialInterface* BaseMaterial = GEngine->WireframeMaterial;
+
+    UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(BaseMaterial, m_PreviewActor);
+    if (!DynamicMaterial) {
+        return;
+    }
+
+    DynamicMaterial->SetVectorParameterValue(FName("Color"), FLinearColor::Green);
+
+    TInlineComponentArray<UStaticMeshComponent*> MeshComponents;
+    m_PreviewActor->GetComponents(MeshComponents);
+
+    for (UStaticMeshComponent* MeshComp : MeshComponents) {
+        if (!MeshComp) {
+            continue;
+        }
+
+        MeshComp->SetCastShadow(false);
+
+        int32 MaterialCount = MeshComp->GetNumMaterials();
+        if (MaterialCount == 0) {
+            MeshComp->SetMaterial(0, DynamicMaterial);
+        }
+
+        for (int32 i = 0; i < MaterialCount; i++) {
+            MeshComp->SetMaterial(i, DynamicMaterial);
+        }
+    }
 }
