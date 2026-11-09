@@ -359,7 +359,14 @@ bool FPartEditorViewportClient::InputWidgetDelta(FViewport* InViewport, EAxisLis
         case EPartSelectionType::Anchor: {
             if (ActivePart->Anchors.IsValidIndex(m_SelectedIndex)) {
                 ActivePart->Modify();
-                ActivePart->Anchors[m_SelectedIndex].Position += Drag;
+
+                FVector CurrentPos = ActivePart->Anchors[m_SelectedIndex].Position;
+                FVector NewPos = CurrentPos + Drag;
+
+                FSnappingUtils::SnapPointToGrid(NewPos, FVector(0.01));
+                Drag = NewPos - CurrentPos;
+
+                ActivePart->Anchors[m_SelectedIndex].Position = NewPos;
                 bHandled = true;
             }
             break;
