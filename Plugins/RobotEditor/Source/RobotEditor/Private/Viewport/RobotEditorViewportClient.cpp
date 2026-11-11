@@ -712,15 +712,27 @@ void FRobotEditorViewportClient::ApplyPreviewMaterial() {
 
 void FRobotEditorViewportClient::SetDetailsView(TSharedPtr<IStructureDetailsView> DetailsView) {
     m_DetailsView = DetailsView;
+
+    TSharedPtr<SWidget> DetailsWidget = m_DetailsView->GetWidget();
+
+    if (DetailsWidget.IsValid()) {
+        DetailsWidget->SetVisibility(EVisibility::Collapsed);
+    }
 }
 
 void FRobotEditorViewportClient::UpdateDetailsView() {
     if (!m_DetailsView) {
         return;
     }
-    else if (!m_SelectedActor) {
+
+    TSharedPtr<SWidget> DetailsWidget = m_DetailsView->GetWidget();
+
+    if (!m_SelectedActor) {
         m_ScopedStruct.Reset();
         m_DetailsView->SetStructureData(nullptr);
+        if (DetailsWidget.IsValid()) {
+            DetailsWidget->SetVisibility(EVisibility::Collapsed);
+        }
     }
     else {
         m_ScopedStruct = MakeShared<FStructOnScope>(
@@ -729,5 +741,9 @@ void FRobotEditorViewportClient::UpdateDetailsView() {
         );
         m_ScopedStruct->SetPackage(m_CurrentRobotData->GetOutermost());
         m_DetailsView->SetStructureData(m_ScopedStruct);
+
+        if (DetailsWidget.IsValid()) {
+            DetailsWidget->SetVisibility(EVisibility::Visible);
+        }
     }
 }
