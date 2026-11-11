@@ -12,11 +12,16 @@
 #include "Components/SkyLightComponent.h"
 #include "ContentBrowserModule.h"
 #include "IContentBrowserSingleton.h"
+#include "Structs/PartStat.h"
 #include "Structs/RobotData.h"
 #include "Data/PartDat.h"
+#include "Components/PrimitiveComponent.h"
 
 FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorUtilsViewportClient(InPreviewScene) {
+        EngineShowFlags.SetSelection(true);
+        EngineShowFlags.SetSelectionOutline(true);
+
         SetViewMode(VMI_Lit);
         UDirectionalLightComponent* KeyLight = NewObject<UDirectionalLightComponent>();
         KeyLight->Intensity = 3.0f;
@@ -279,6 +284,8 @@ bool FRobotEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
             if (HitResult.bBlockingHit) {
                 AActor* HitActor = HitResult.GetActor();
                 if (HitActor && m_Actors.Find(HitActor)) {
+                    SetSelectedActor(nullptr);
+                    UpdateDetailsView();
                     m_Actors.Remove(HitActor);
                     HitActor->Destroy();
                 }
@@ -287,30 +294,46 @@ bool FRobotEditorViewportClient::InputKey(const FInputKeyEventArgs& EventArgs) {
             return true;
         }
 
-        if (!m_SelectedPart) { return true; }
+        if (!m_SelectedPart) {
+            /*
+             * If we have no part selected, we want to just select any parts that exist in the world. This includes selecting no part so that we can properly deselect.
+             * I'll include another hotkey for deselection
+             *
+             * TODO : Include that hotkey.
+             */
+            FHitResult HitResult = GetCastHitResult();
+            AActor* HitActor = HitResult.GetActor();
+            SetSelectedActor(HitActor);
+            return true;
+        }
         /*
          *   If there isn't a part displayed on the screen, place immediately at 0, 0, 0. If there is a part on the screen, perform a cast and ensure that the cast is hitting something.
          *   If it isn't, pass this down thorugh FEditorUtilsViewportClient::InputKey(EventArgs);
          */
         if (m_Actors.Num() == 0) {
+            SetSelectedActor(nullptr);
+            UpdateDetailsView();
             CreatePartAtTransform(m_SelectedPart, FTransform::Identity);
         }
         else {
             FHitResult HitResult = GetCastHitResult();
             if (HitResult.bBlockingHit) {
                 if (m_PreviewActor) {
+                    SetSelectedActor(nullptr);
+                    UpdateDetailsView();
                     CreatePartFromPreview();
+                    return true;
                 } else {
+                    SetSelectedActor(nullptr);
+                    UpdateDetailsView();
                     CreatePartAtTransform(m_SelectedPart, FTransform(HitResult.ImpactPoint));
+                    return true;
                 }
             }
         }
 
-         return true;
+        return true;
     }
-
-
-
     return FEditorUtilsViewportClient::InputKey(EventArgs);
 }
 
@@ -322,6 +345,12 @@ void FRobotEditorViewportClient::SetSelectedPart(UPDAPart* PartData) {
     UWorld* PreviewWorld = PreviewScene->GetWorld();
     if (!PreviewWorld) return;
 
+    if (PartData == m_SelectedPart) {
+        m_SelectedPart = nullptr;
+        m_PreviewActor->Destroy();
+        m_PreviewActor->Reset();
+        return;
+    }
     m_SelectedPart = PartData;
 
     if (m_PreviewActor) {
@@ -345,6 +374,39 @@ void FRobotEditorViewportClient::SetSelectedPart(UPDAPart* PartData) {
     FEditorUtilsViewportClient::Invalidate();
 }
 
+void FRobotEditorViewportClient::SetSelectedActor(AActor* Actor) {
+    if (m_SelectedActor && m_SelectedActor != Actor) {
+        TArray<UMeshComponent*> MeshComps;
+        m_SelectedActor->GetComponents<UMeshComponent>(MeshComps);
+
+        for (UMeshComponent* MeshComp : MeshComps) {
+            if (!MeshComp) continue;
+            MeshComp->SelectionOverrideDelegate.Unbind();
+        }
+        m_SelectedActor->PushSelectionToProxies();
+    }
+
+     m_SelectedActor = Actor;
+
+    if (Actor) {
+        TArray<UMeshComponent*> MeshComps;
+        Actor->GetComponents<UMeshComponent>(MeshComps);
+
+        for (UMeshComponent* MeshComp : MeshComps) {
+            if (!MeshComp) continue;
+            MeshComp->SelectionOverrideDelegate = UPrimitiveComponent::FSelectionOverride::CreateLambda(
+                [this](const UPrimitiveComponent* Comp) -> bool
+                {
+                    return Comp && Comp->GetOwner() == m_SelectedActor;
+                });
+        }
+        m_SelectedActor->PushSelectionToProxies();
+    }
+    UpdateDetailsView();
+    FEditorUtilsViewportClient::Invalidate();
+    return;
+}
+
 void FRobotEditorViewportClient::UpdatePreviewActor(bool ShouldShow) {
     const bool bPropagate = true;
     if (m_PreviewActor) {
@@ -363,7 +425,7 @@ void FRobotEditorViewportClient::MovePreviewActorToLocation(FVector Location) {
     return;
 }
 
-void FRobotEditorViewportClient::CreatePartAtTransform(UPDAPart* Part, FTransform Transform) {
+void FRobotEditorViewportClient::CreatePartAtTransform(UPDAPart* Part, FTransform Transform, const TMap<FName, FPartStat>& Stats) {
     if (!Part) { return; }
 
     if (Part->Object) {
@@ -374,7 +436,7 @@ void FRobotEditorViewportClient::CreatePartAtTransform(UPDAPart* Part, FTransfor
         NewActor->SetActorTransform(Transform);
 
         if (NewActor) {
-            m_Actors.Emplace(NewActor, FPartData(Part, Transform, {}));
+            m_Actors.Emplace(NewActor, FPartData(Part, Transform, Stats));
         }
     }
 
@@ -429,6 +491,8 @@ void FRobotEditorViewportClient::SaveActiveAsset() {
     if (!m_CurrentRobotData || m_Actors.IsEmpty()) {
         return;
     }
+
+    SetSelectedActor(nullptr);
 
     URobotDataContainer* Data = m_CurrentRobotData;
     TArray<FPartData> PartData;
@@ -530,6 +594,7 @@ void FRobotEditorViewportClient::SaveNewAsset(URobotDataContainer* RobotData, co
 }
 
 void FRobotEditorViewportClient::CreateNewRobot() {
+    SetSelectedActor(nullptr);
     if (m_CurrentRobotData) {
 
         /*
@@ -548,6 +613,8 @@ void FRobotEditorViewportClient::CreateNewRobot() {
 }
 
 void FRobotEditorViewportClient::LoadRobot(URobotDataContainer* RobotData) {
+    SetSelectedActor(nullptr);
+
     if (m_CurrentRobotData) {
         ClearScene();
     }
@@ -561,12 +628,14 @@ void FRobotEditorViewportClient::LoadRobot(URobotDataContainer* RobotData) {
     for (const FPartData& Part : RobotData->RobotParts.Parts) {
         UPDAPart* VisualPart = Part.Part.Get();
         FTransform Transform = Part.RelativeTransform;
+        TMap<FName, FPartStat> Stats = Part.PartStats;
 
-        CreatePartAtTransform(VisualPart, Transform);
+        CreatePartAtTransform(VisualPart, Transform, Stats);
     }
 }
 
 void FRobotEditorViewportClient::ClearScene() {
+    SetSelectedActor(nullptr);
     for (const TPair<AActor*, FPartData>& KVPair : m_Actors) {
         KVPair.Key->Destroy();
     }
@@ -638,5 +707,27 @@ void FRobotEditorViewportClient::ApplyPreviewMaterial() {
         for (int32 i = 0; i < MaterialCount; i++) {
             MeshComp->SetMaterial(i, DynamicMaterial);
         }
+    }
+}
+
+void FRobotEditorViewportClient::SetDetailsView(TSharedPtr<IStructureDetailsView> DetailsView) {
+    m_DetailsView = DetailsView;
+}
+
+void FRobotEditorViewportClient::UpdateDetailsView() {
+    if (!m_DetailsView) {
+        return;
+    }
+    else if (!m_SelectedActor) {
+        m_ScopedStruct.Reset();
+        m_DetailsView->SetStructureData(nullptr);
+    }
+    else {
+        m_ScopedStruct = MakeShared<FStructOnScope>(
+            FPartData::StaticStruct(),
+            reinterpret_cast<uint8*>(&m_Actors[m_SelectedActor])
+        );
+        m_ScopedStruct->SetPackage(m_CurrentRobotData->GetOutermost());
+        m_DetailsView->SetStructureData(m_ScopedStruct);
     }
 }

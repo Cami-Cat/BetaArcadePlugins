@@ -4,6 +4,8 @@
 #include "Viewport/EditorViewportClient.h"
 #include "Data/PartDat.h"
 #include "Structs/RobotData.h"
+#include "IStructureDetailsView.h"
+#include "UObject/StructOnScope.h"
 #include "EditorViewportClient.h"
 #include "PreviewScene.h"
 
@@ -19,8 +21,11 @@ public:
     virtual void SetSelectedPart(UPDAPart* PartData);
     virtual void UpdatePreviewActor(bool ShouldShow);
     virtual void MovePreviewActorToLocation(FVector Location);
-    virtual void CreatePartAtTransform(UPDAPart* Part, FTransform Transform);
+    virtual void CreatePartAtTransform(UPDAPart* Part, FTransform Transform, const TMap<FName, FPartStat>& Stats = {});
+    virtual void SetSelectedActor(AActor* Actor);
     virtual void SetSelectedActorsData(const FPartData& PartData);
+    virtual void SetDetailsView(TSharedPtr<IStructureDetailsView> DetailsView);
+    virtual void UpdateDetailsView();
 
     virtual FHitResult GetCastHitResult();
 
@@ -59,6 +64,9 @@ private:
     TMap<TObjectPtr<AActor>, FPartData> m_Actors;
     TObjectPtr<AActor> m_SelectedActor;
     TObjectPtr<URobotDataContainer> m_CurrentRobotData;
+
+    TSharedPtr<IStructureDetailsView> m_DetailsView;
+    TSharedPtr<FStructOnScope> m_ScopedStruct;
 
     FVector m_TargetOrbit = FVector::ZeroVector;
 
