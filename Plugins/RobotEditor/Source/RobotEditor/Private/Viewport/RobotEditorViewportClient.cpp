@@ -16,6 +16,7 @@
 #include "Structs/RobotData.h"
 #include "Data/PartDat.h"
 #include "Components/PrimitiveComponent.h"
+#include "BPFL/RobotEditorBPFL.h"
 
 FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewScene)
     : FEditorUtilsViewportClient(InPreviewScene) {
@@ -66,12 +67,27 @@ void FRobotEditorViewportClient::Tick(float DeltaSeconds) {
                 m_PreviewActor->SetActorLocationAndRotation(bHit.ImpactPoint, FRotator::ZeroRotator);
             }
 
-            SnapToNearestAnchor(bHit, m_PreviewActor);
+            /*
+             * Try to snap the object to the nearest other object. If you cannot, simply deal with UpdatePreviewActor()
+             */
+
+            UPDAPart* HitPart = GetPartDataFromActor(bHit.GetActor()).Part.Get();
+            FSnapResult SnapResult = URobotEditorBPFL::GetSnapResult(bHit.ImpactPoint, bHit.GetActor(), HitPart, m_SelectedPart, m_CurrentRotationNum);
+            if (SnapResult.bCanSnap) {
+                FTransform SnapTransform = SnapResult.SnapTransform;
+                m_PreviewActor->SetActorTransform(SnapTransform);
+            }
         }
     } else {
         UpdatePreviewActor(false);
         MovePreviewActorToLocation(bHit.TraceEnd);
     }
+
+    /* Update the camera's position until it is close enough to the target orbit point with a total tolerance of 0.01f
+     * Currently a magic number.
+     *
+     * TODO : Remove magic numbers for constants.
+     */
 
     if (!FVector::PointsAreNear(m_TargetOrbit, m_OrbitTargetPoint, 0.01f)) {
         float Alpha = 5.0f * DeltaSeconds;
@@ -81,16 +97,16 @@ void FRobotEditorViewportClient::Tick(float DeltaSeconds) {
     FEditorUtilsViewportClient::Invalidate();
 }
 
-TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor) {
+FSnapResult FRobotEditorViewportClient::SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor) {
     if (!HitResult.bBlockingHit || !SnapActor) {
-        return MakeTuple(FPartData(), INDEX_NONE, INDEX_NONE);
+        return FSnapResult(false);
     }
 
     AActor* HitActor = HitResult.GetActor();
     const FPartData& HitData = GetPartDataFromActor(HitActor);
 
     if (!HitData.Part || !m_SelectedPart || HitData.Part->Anchors.Num() == 0 || m_SelectedPart->Anchors.Num() == 0) {
-        return MakeTuple(FPartData(), INDEX_NONE, INDEX_NONE);
+        return FSnapResult(false);
     }
 
     /*
@@ -124,7 +140,7 @@ TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> FRobotEdi
      */
 
     if (ClosestDistanceSq > MAX_FLT) {
-        return MakeTuple(FPartData(), INDEX_NONE, INDEX_NONE);
+        return FSnapResult(false);
     }
 
     /*
@@ -224,10 +240,8 @@ TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> FRobotEdi
      * Then all we need to do is set the location and the rotation, and the snapping is complete.
      */
 
-    SnapActor->SetActorLocationAndRotation(FinalWorldLocation, FinalRotation);
-
-    FEditorUtilsViewportClient::Invalidate();
-    return MakeTuple(HitData, TargetAnchorIndex, TargetSnapAnchorIndex);
+    FTransform FinalTransform(FinalRotation, FinalWorldLocation);
+    return FSnapResult(true, FinalTransform, HitActor, TargetAnchorIndex, TargetSnapAnchorIndex);
 }
 
 void FRobotEditorViewportClient::CreatePartFromPreview() {

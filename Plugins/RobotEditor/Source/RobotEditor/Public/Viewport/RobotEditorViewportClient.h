@@ -4,6 +4,7 @@
 #include "Viewport/EditorViewportClient.h"
 #include "Data/PartDat.h"
 #include "Structs/RobotData.h"
+#include "Structs/SnapResult.h"
 #include "IStructureDetailsView.h"
 #include "UObject/StructOnScope.h"
 #include "EditorViewportClient.h"
@@ -29,7 +30,7 @@ public:
 
     virtual FHitResult GetCastHitResult();
 
-    TTuple<const FPartData& /*HitData*/, int /*HitID*/, int /*PreviewID*/> SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor);
+    FSnapResult SnapToNearestAnchor(const FHitResult& HitResult, AActor* SnapActor);
     void CreatePartFromPreview();
     FPartData GetPartDataFromActor(AActor* Actor);
 
