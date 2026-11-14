@@ -1,4 +1,8 @@
 #include "BPFL/RobotEditorBPFL.h"
+#include "Engine/World.h"
+#include "CollisionShape.h"
+#include "CollisionQueryParams.h"
+#include "DrawDebugHelpers.h"
 
 FSnapResult URobotEditorBPFL::GetSnapResult(const FVector& HitImpactPoint, AActor* HitActor, UPDAPart* HitPart, UPDAPart* PartToSnap, int CurrentRotationIndex) {
     if (!HitActor ||
@@ -135,6 +139,28 @@ FSnapResult URobotEditorBPFL::GetSnapResult(const FVector& HitImpactPoint, AActo
     return FSnapResult(true, FinalTransform, HitActor, TargetAnchorIndex, TargetSnapAnchorIndex);
 }
 
-bool URobotEditorBPFL::ShapeCastPartCollision(UPDAPart* Part) {
-    return false;
+bool URobotEditorBPFL::IsPartColliding(UWorld* World, const FTransform& Transform, UPDAPart* Part) {
+    if (!World || !Part) {
+        return false;
+    }
+
+    const FBox& LocalBox = Part->GetBoundingBox();
+    if (!LocalBox.IsValid) {
+        return false;
+    }
+
+    const FVector ScaledExtent = (LocalBox.GetExtent()) * m_ShapeCastMarginMultiplier;
+    const FCollisionShape BoxShape = FCollisionShape::MakeBox(ScaledExtent);
+
+    FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ShapeCastPartCollision), false);
+
+    const bool bHasOverlap = World->OverlapBlockingTestByChannel(
+        Transform.GetLocation(),
+        Transform.GetRotation(),
+        ECC_Visibility,
+        BoxShape,
+        QueryParams
+    );
+
+    return !bHasOverlap;
 }

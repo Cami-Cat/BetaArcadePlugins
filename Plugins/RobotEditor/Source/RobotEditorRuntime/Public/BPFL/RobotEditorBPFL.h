@@ -14,8 +14,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Robot Building")
     static FSnapResult GetSnapResult(const FVector& HitImpactPoint, AActor* HitActor, UPDAPart* HitPart, UPDAPart* PartToSnap, int CurrentRotationIndex = 0);
     UFUNCTION()
-    static bool ShapeCastPartCollision(UPDAPart* Part);
+    static bool IsPartColliding(UWorld* World, const FTransform& Transform, UPDAPart* Part);
 
 
+public:
 
+    static inline float m_ShapeCastMarginMultiplier = 0.95f;
 };
