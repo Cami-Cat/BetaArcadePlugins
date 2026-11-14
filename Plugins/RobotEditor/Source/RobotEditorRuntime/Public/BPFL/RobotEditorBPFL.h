@@ -16,7 +16,6 @@ public:
     UFUNCTION()
     static bool IsPartColliding(UWorld* World, const FTransform& Transform, UPDAPart* Part);
 
-
 public:
 
     static inline float m_ShapeCastMarginMultiplier = 0.95f;

@@ -27,6 +27,10 @@ FRobotEditorViewportClient::FRobotEditorViewportClient(FPreviewScene& InPreviewS
             GEditor->RegisterForUndo(this);
         }
 
+        m_UndoState = TStrongObjectPtr<URobotEditorUndoState>(
+            NewObject<URobotEditorUndoState>(GetTransientPackage(), NAME_None, RF_Transactional)
+        );
+
         EngineShowFlags.SetSelection(true);
         EngineShowFlags.SetSelectionOutline(true);
 
@@ -317,52 +321,55 @@ void FRobotEditorViewportClient::MovePreviewActorToLocation(FVector Location) {
 }
 
 void FRobotEditorViewportClient::DestroyActor(AActor* Actor) {
-    if (!Actor || !m_CurrentRobotData) {
+    if (!Actor) {
         return;
     }
 
     const FScopedTransaction Transaction(NSLOCTEXT("RobotEditor", "DeletePart", "Remove Robot Part"));
-    m_CurrentRobotData->Modify();
-
+    CommitUndoState();
 
     SetSelectedActor(nullptr);
     UpdateDetailsView();
-
     m_Actors.Remove(Actor);
+    Actor->Destroy();
 
-    if (UWorld* World = Actor->GetWorld()) {
-        Actor->Modify();
-        World->EditorDestroyActor(Actor, true);
-    }
+    CommitUndoState();
 
     UpdateOrbitTargetPoint();
     FEditorUtilsViewportClient::Invalidate();
 }
 
 void FRobotEditorViewportClient::CreatePartAtTransform(UPDAPart* Part, FTransform Transform, const TMap<FName, FPartStat>& Stats) {
-    if (!Part) { return; }
-
-    if (Part->Object) {
-        const FScopedTransaction Transaction(NSLOCTEXT("RobotEditor", "CreatePart", "Place Robot Part"));
-        m_CurrentRobotData->Modify();
-
-        FActorSpawnParameters SpawnParams;
-        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        SpawnParams.ObjectFlags |= RF_Transactional;
-
-        AActor* NewActor = FEditorUtilsViewportClient::CreateActorComponent(Part->Object, SpawnParams);
-        if (NewActor) {
-            NewActor->Modify();
-            NewActor->SetActorTransform(Transform);
-
-            m_Actors.Emplace(NewActor, FPartData(Part, Transform, Stats));
-            AddCollisionToActor(NewActor);
-        }
+    if (!Part || !Part->Object) {
+        return;
     }
+
+    const FScopedTransaction Transaction(NSLOCTEXT("RobotEditor", "CreatePart", "Add Part To Robot"));
+    CommitUndoState();
+
+    SpawnPartInternal(Part, Transform, Stats);
+
+    CommitUndoState();
 
     UpdateOrbitTargetPoint();
     FEditorUtilsViewportClient::Invalidate();
     return;
+}
+
+void FRobotEditorViewportClient::SpawnPartInternal(UPDAPart* Part, FTransform Transform, const TMap<FName, FPartStat>& Stats) {
+    if (!Part || !Part->Object) {
+        return;
+    }
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    AActor* NewActor = FEditorUtilsViewportClient::CreateActorComponent(Part->Object, SpawnParams);
+    if (NewActor) {
+        NewActor->SetActorTransform(Transform);
+        m_Actors.Emplace(NewActor, FPartData(Part, Transform, Stats));
+        AddCollisionToActor(NewActor);
+    }
 }
 
 void FRobotEditorViewportClient::SetSelectedActorsData(const FPartData& PartData) {
@@ -533,6 +540,10 @@ void FRobotEditorViewportClient::CreateNewRobot() {
 }
 
 void FRobotEditorViewportClient::LoadRobot(URobotDataContainer* RobotData) {
+    if (GEditor) {
+        GEditor->ResetTransaction(NSLOCTEXT("RobotEditor", "ResetUndo", "Clear History"));
+    }
+
     SetSelectedActor(nullptr);
 
     if (m_CurrentRobotData) {
@@ -550,7 +561,7 @@ void FRobotEditorViewportClient::LoadRobot(URobotDataContainer* RobotData) {
         FTransform Transform = Part.RelativeTransform;
         TMap<FName, FPartStat> Stats = Part.PartStats;
 
-        CreatePartAtTransform(VisualPart, Transform, Stats);
+        SpawnPartInternal(VisualPart, Transform, Stats);
     }
 }
 
@@ -729,12 +740,47 @@ void FRobotEditorViewportClient::AddCollisionToActor(AActor* Actor) {
 }
 
 void FRobotEditorViewportClient::PostUndo(bool bSuccess) {
-    if (bSuccess) {
-        UpdateOrbitTargetPoint();
-        FEditorUtilsViewportClient::Invalidate();
+    if (!bSuccess || !m_UndoState.IsValid()) {
+        return;
     }
+
+    SetSelectedActor(nullptr);
+
+    for (const auto& Pair : m_Actors) {
+        if (Pair.Key) {
+            Pair.Key->Destroy();
+        }
+    }
+    m_Actors.Empty();
+
+    for (const FPartData& Data : m_UndoState->PartSnapshot) {
+        SpawnPartInternal(Data.Part.Get(), Data.RelativeTransform, Data.PartStats);
+    }
+
+    UpdateDetailsView();
+    UpdateOrbitTargetPoint();
+    FEditorUtilsViewportClient::Invalidate();
 }
 
 void FRobotEditorViewportClient::PostRedo(bool bSuccess) {
     PostUndo(bSuccess);
+}
+
+void FRobotEditorViewportClient::CommitUndoState() {
+    if (!m_UndoState) {
+        return;
+    }
+
+    m_UndoState->Modify();
+    m_UndoState->PartSnapshot.Reset(m_Actors.Num());
+
+    for (const TPair<AActor*, FPartData>& Pair : m_Actors) {
+        FPartData PartSnapshot = Pair.Value;
+        if (Pair.Key) {
+            PartSnapshot.RelativeTransform = Pair.Key->GetActorTransform();
+        }
+        m_UndoState->PartSnapshot.Add(PartSnapshot);
+    }
+
+    m_CurrentRobotData->MarkPackageDirty();
 }

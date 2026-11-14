@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Viewport/EditorViewportClient.h"
 #include "Data/PartDat.h"
+#include "Data/TransactionalRobotData.h"
 #include "Structs/RobotData.h"
 #include "Structs/SnapResult.h"
 #include "IStructureDetailsView.h"
@@ -20,36 +21,10 @@ public:
 
     virtual bool InputKey(const FInputKeyEventArgs& EventArgs) override;
     virtual void Tick(float DeltaSeconds) override;
-
     virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
-
-    void SetSelectedPart(UPDAPart* PartData);
-    void UpdatePreviewActor(bool ShouldShow);
-    void MovePreviewActorToLocation(FVector Location);
-    void DestroyActor(AActor* Actor);
-    void CreatePartAtTransform(UPDAPart* Part, FTransform Transform, const TMap<FName, FPartStat>& Stats = {});
-    void SetSelectedActor(AActor* Actor);
-    void SetSelectedActorsData(const FPartData& PartData);
 
     virtual void SetDetailsView(TSharedPtr<IStructureDetailsView> DetailsView);
     virtual void UpdateDetailsView();
-
-    bool HandleObjectHighlight(AActor* Actor);
-    bool HandleObjectSnapping(const FHitResult& bHit);
-
-    virtual FHitResult GetCastHitResult();
-    void AddCollisionToActor(AActor* Actor);
-
-    UMaterialInstanceDynamic* CreateTransparentMaterialInstance(const FLinearColor& Color, float Opacity);
-
-    void ApplyOverlayMaterial(AActor* Actor, UMaterialInstanceDynamic* Material);
-    void ClearOverlayMaterial(AActor* Actor);
-
-    FPartData GetPartDataFromActor(AActor* Actor);
-
-    TArray<FTransform> GetAnchorsRelativeToPart(UPDAPart* Part);
-    AActor* GetActor();
-    FVector GetActorLocation(AActor* Actor);
 
     virtual void OnThumbnailTriggered(UPDAPart* Part) override;
     virtual void ConnectTileSingleClick(SThumbnailTile* Tile) override;
@@ -57,15 +32,42 @@ public:
     virtual void OnAddButtonPressed() override;
 
     virtual void SaveActiveAsset();
-    void SaveNewAsset(URobotDataContainer* RobotData, const FString& ChosenPackagePath, const FString& CurrentName);
+    virtual FHitResult GetCastHitResult();
 
+    void CommitUndoState();
+
+    void ClearScene();
     void CreateNewRobot();
     void LoadRobot(URobotDataContainer* RobotData);
-    void ClearScene();
 
     void UpdateOrbitTargetPoint();
     void ApplyPreviewMaterial();
     FVector GetCenterOfMass();
+
+    void SaveNewAsset(URobotDataContainer* RobotData, const FString& ChosenPackagePath, const FString& CurrentName);
+    void SetSelectedPart(UPDAPart* PartData);
+
+    void UpdatePreviewActor(bool ShouldShow);
+    void MovePreviewActorToLocation(FVector Location);
+
+    void DestroyActor(AActor* Actor);
+    void SetSelectedActor(AActor* Actor);
+    void SetSelectedActorsData(const FPartData& PartData);
+    void CreatePartAtTransform(UPDAPart* Part, FTransform Transform, const TMap<FName, FPartStat>& Stats = {});
+    void SpawnPartInternal(UPDAPart* Part, FTransform Transform, const TMap<FName, FPartStat>& Stats = {});
+    FPartData GetPartDataFromActor(AActor* Actor);
+    TArray<FTransform> GetAnchorsRelativeToPart(UPDAPart* Part);
+    AActor* GetActor();
+    FVector GetActorLocation(AActor* Actor);
+
+    bool HandleObjectHighlight(AActor* Actor);
+    bool HandleObjectSnapping(const FHitResult& bHit);
+
+    void AddCollisionToActor(AActor* Actor);
+
+    UMaterialInstanceDynamic* CreateTransparentMaterialInstance(const FLinearColor& Color, float Opacity);
+    void ApplyOverlayMaterial(AActor* Actor, UMaterialInstanceDynamic* Material);
+    void ClearOverlayMaterial(AActor* Actor);
 
 private:
 
@@ -80,6 +82,8 @@ private:
     TObjectPtr<URobotDataContainer> m_CurrentRobotData;
     TSharedPtr<IStructureDetailsView> m_DetailsView;
     TSharedPtr<FStructOnScope> m_ScopedStruct;
+
+    TStrongObjectPtr<URobotEditorUndoState> m_UndoState;
 
     FVector m_TargetOrbit = FVector::ZeroVector;
 
