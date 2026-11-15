@@ -152,7 +152,7 @@ AActor* FEditorUtilsViewportClient::CreateActorComponent(UBlueprint* InObject, F
         SpawnedActor->GetComponents(Components);
         for (UActorComponent* Component : Components) {
             if (Component) {
-                Component->SetComponentTickEnabled(false);#
+                Component->SetComponentTickEnabled(false);
                 if (bWithCollision) {
                     if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component)) {
                         PrimitiveComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
